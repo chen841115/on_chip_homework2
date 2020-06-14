@@ -1,0 +1,150 @@
+Magic 271485
+Revision Verdi_O-2018.09
+
+; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
+viewPort 1920 23 1920 1137 318 283
+
+; File list:
+; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
+openDirFile -d / "" "/home/hsiao/on_chip_homework/build/top_tb.fsdb"
+
+; file time scale:
+; fileTimeScale ### s|ms|us|ns|ps
+
+; signal spacing:
+signalSpacing 5
+
+; windowTimeUnit is used for zoom, cursor & marker
+; waveform viewport range
+zoom 312326377.478104 312696250.524979
+cursor 312445000.000000
+marker 0.000000
+
+; user define markers
+; userMarker time_pos marker_name color linestyle
+; visible top row signal index
+top 20
+; marker line index
+markerPos 68
+
+; event list
+; addEvent event_name event_expression
+; curEvent event_name
+
+
+
+COMPLEX_EVENT_BEGIN
+
+
+COMPLEX_EVENT_END
+
+
+
+; toolbar current search type
+; curSTATUS search_type
+curSTATUS ByChange
+
+
+addGroup "G1"
+activeDirFile "" "/home/hsiao/on_chip_homework/build/top_tb.fsdb"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/clk
+addSignal -h 15 -holdScope rst
+addGroup "transfer"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/cur_state[3:0]
+addSignal -h 15 -holdScope next_state[3:0]
+addSignal -h 15 -holdScope map_col[9:0]
+addSignal -h 15 -holdScope map_row[9:0]
+addSignal -h 15 -holdScope col_index[9:0]
+addSignal -h 15 -holdScope row_index[9:0]
+addSignal -h 15 -holdScope col_length[5:0]
+addSignal -h 15 -holdScope row_length[5:0]
+addSignal -h 15 -holdScope DMA_start
+addSignal -h 15 -holdScope DMA_done
+addSignal -h 15 -holdScope DMA_type
+addSignal -h 15 -holdScope SRAM_type
+addSignal -h 15 -holdScope controller_run
+addSignal -h 15 -holdScope tile_done
+addSignal -h 15 -holdScope tile_col[5:0]
+addSignal -h 15 -holdScope tile_row[5:0]
+addSignal -h 15 -holdScope channel[9:0]
+addSignal -h 15 -holdScope cur_channel[9:0]
+addGroup "G3"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/map_addr_offset[19:0]
+addSignal -h 15 -holdScope channal_addr_offset[21:0]
+addSignal -h 15 -holdScope transfer_controller_done
+addGroup "PE_input"
+addSignal -expanded -h 15 /top_tb/top_1/controller_1/PE_data_input[0:8]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[0][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[1][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[2][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[3][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[4][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[5][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[6][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[7][31:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope PE_data_input[8][31:0]
+addGroup "DMA"
+addSignal -h 15 /top_tb/top_1/DMA_1/cur_state[3:0]
+addSignal -h 15 -holdScope DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -h 15 -holdScope Output_SRAM_ADDR_start[17:0]
+addSignal -h 15 -holdScope Output_SRAM_ADDR_end[17:0]
+addSignal -h 15 -holdScope output_SRAM_CEN_DMA
+addSignal -h 15 -holdScope output_SRAM_OEN_DMA
+addSignal -expanded -h 15 -holdScope output_SRAM_AB_DMA[0:31]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[0][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[1][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[2][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[29][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[30][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[31][11:0]
+addSignal -expanded -h 15 -holdScope output_SRAM_DO_DMA[0:31]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[0][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[1][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[2][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[3][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[4][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[30][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[31][31:0]
+addSignal -h 15 /top_tb/top_1/u_output_SRAM[0]/output_SRAM_i/CENA
+addSignal -h 15 -holdScope OENB
+addSignal -h 15 -holdScope AB[11:0]
+addSignal -h 15 /top_tb/top_1/mux_output_sram_read_1/output_sram_read_select
+addSignal -h 15 /top_tb/top_1/DMA_1/DRAM_addr[31:0]
+addSignal -h 15 -holdScope DRAM_D[31:0]
+addSignal -h 15 -holdScope DRAM_A[11:0]
+addSignal -h 15 -holdScope DRAM_RASn
+addSignal -h 15 -holdScope DRAM_CASn
+addGroup "DRAM"
+addGroup "G7"
+
+; getSignalForm Scope Hierarchy Status
+; active file of getSignalForm
+activeDirFile "" "/home/hsiao/on_chip_homework/build/top_tb.fsdb"
+
+GETSIGNALFORM_SCOPE_HIERARCHY_BEGIN
+getSignalForm close
+
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/DMA_1"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1/u_output_SRAM[0]"
+"/top_tb/top_1/u_output_SRAM[0]/output_SRAM_i"
+
+SCOPE_LIST_BEGIN
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1/controller_1"
+"/top_tb/top_1/DMA_1"
+"/top_tb/top_1/u_output_SRAM[0]"
+"/top_tb/top_1/u_output_SRAM[0]/output_SRAM_i"
+"/top_tb/top_1/mux_sram_1"
+"/top_tb/top_1/mux_buffer_1"
+"/top_tb/top_1/mux_output_sram_read_1"
+SCOPE_LIST_END
+
+GETSIGNALFORM_SCOPE_HIERARCHY_END
+
+

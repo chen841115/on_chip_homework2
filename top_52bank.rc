@@ -1,0 +1,113 @@
+Magic 271485
+Revision Verdi_O-2018.09
+
+; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
+viewPort 1920 23 1920 1137 318 283
+
+; File list:
+; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
+openDirFile -d / "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+
+; file time scale:
+; fileTimeScale ### s|ms|us|ns|ps
+
+; signal spacing:
+signalSpacing 5
+
+; windowTimeUnit is used for zoom, cursor & marker
+; waveform viewport range
+zoom 0.000000 50500000.000000
+cursor 0.000000
+marker 0.000000
+
+; user define markers
+; userMarker time_pos marker_name color linestyle
+; visible top row signal index
+top 0
+; marker line index
+markerPos 42
+
+; event list
+; addEvent event_name event_expression
+; curEvent event_name
+
+
+
+COMPLEX_EVENT_BEGIN
+
+
+COMPLEX_EVENT_END
+
+
+
+; toolbar current search type
+; curSTATUS search_type
+curSTATUS ByChange
+
+
+addGroup "transfer_controller"
+activeDirFile "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/clk
+addSignal -h 15 -holdScope rst
+addSignal -h 15 -holdScope run
+addSignal -h 15 -holdScope controller_run
+addGroup "DMA"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -h 15 -holdScope BUF_ADDR_start[6:0]
+addSignal -h 15 -holdScope DMA_start
+addSignal -h 15 -holdScope DMA_done
+addSignal -h 15 -holdScope SRAM_type
+addSignal -h 15 -holdScope DMA_buf_select
+addSignal -h 15 -holdScope tile_done
+addGroup "buffer2sram_input"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/input_BUF_ADDR_start[7:0]
+addSignal -h 15 -holdScope input_BUF_ADDR_end[7:0]
+addSignal -h 15 -holdScope input_SRAM_ADDR_start[12:0]
+addSignal -h 15 -holdScope input_buffer2sram_start
+addSignal -h 15 -holdScope input_buffer2sram_done
+addGroup "conv info"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/kernel_size[3:0]
+addSignal -h 15 -holdScope kernel_num[9:0]
+addSignal -h 15 -holdScope stride[2:0]
+addSignal -h 15 -holdScope channel[9:0]
+addSignal -h 15 -holdScope map_size[9:0]
+addGroup "signal for buffer to sram"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/input_SRAM_rw_select[0:51]
+addSignal -h 15 -holdScope input_buffer_rw_select[0:1]
+addGroup "logic"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/map_col[9:0]
+addSignal -h 15 -holdScope map_row[9:0]
+addSignal -h 15 -holdScope col_length[5:0]
+addSignal -h 15 -holdScope row_length[5:0]
+addSignal -h 15 -holdScope cur_state[2:0]
+addSignal -h 15 -holdScope next_state[2:0]
+addSignal -h 15 -holdScope pre_state[2:0]
+addSignal -h 15 -holdScope col_index[9:0]
+addSignal -h 15 -holdScope next_col_index[9:0]
+addSignal -h 15 -holdScope row_index[9:0]
+addSignal -h 15 -holdScope next_row_index[9:0]
+addSignal -h 15 -holdScope tile_col[5:0]
+addSignal -h 15 -holdScope tile_row[5:0]
+addGroup "G7"
+
+; getSignalForm Scope Hierarchy Status
+; active file of getSignalForm
+activeDirFile "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+
+GETSIGNALFORM_SCOPE_HIERARCHY_BEGIN
+getSignalForm close
+
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/transfer_controller_1"
+
+SCOPE_LIST_BEGIN
+"/top_tb"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1"
+SCOPE_LIST_END
+
+GETSIGNALFORM_SCOPE_HIERARCHY_END
+
+

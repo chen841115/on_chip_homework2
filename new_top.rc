@@ -1,0 +1,230 @@
+Magic 271485
+Revision Verdi_O-2018.09
+
+; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
+viewPort 0 11 1920 1137 318 283
+
+; File list:
+; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
+openDirFile -d / "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+
+; file time scale:
+; fileTimeScale ### s|ms|us|ns|ps
+
+; signal spacing:
+signalSpacing 5
+
+; windowTimeUnit is used for zoom, cursor & marker
+; waveform viewport range
+zoom 0.000000 382730.632485
+cursor 1395000.000000
+marker 0.000000
+
+; user define markers
+; userMarker time_pos marker_name color linestyle
+; visible top row signal index
+top 9
+; marker line index
+markerPos 126
+
+; event list
+; addEvent event_name event_expression
+; curEvent event_name
+
+
+
+COMPLEX_EVENT_BEGIN
+
+
+COMPLEX_EVENT_END
+
+
+
+; toolbar current search type
+; curSTATUS search_type
+curSTATUS ByChange
+
+
+addGroup "G1"
+activeDirFile "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+addSignal -h 15 /top_tb/top_1/clk
+addSignal -h 15 -holdScope rst
+addSignal -h 15 -holdScope run
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/kernel_size[3:0]
+addSignal -h 15 -holdScope kernel_num[9:0]
+addSignal -h 15 -holdScope stride[2:0]
+addSignal -h 15 -holdScope channel[9:0]
+addSignal -h 15 -holdScope map_size[9:0]
+addGroup "G2"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -h 15 -holdScope BUF_ADDR_start[6:0]
+addSignal -h 15 -holdScope DMA_start
+addSignal -h 15 -holdScope DMA_done
+addSignal -h 15 -holdScope SRAM_type
+addSignal -h 15 -holdScope DMA_buf_select
+addSignal -h 15 -holdScope read_buf_select
+addGroup "G3"
+addSignal -h 15 -UNSIGNED -BIN /top_tb/top_1/transfer_controller_1/input_BUF_ADDR_start[7:0]
+addSignal -h 15 -holdScope input_BUF_ADDR_end[7:0]
+addSignal -h 15 -holdScope input_SRAM_ADDR_start[9:0]
+addSignal -h 15 -holdScope input_buffer2sram_start
+addSignal -h 15 -holdScope input_buffer2sram_done
+addSignal -h 15 -holdScope input_SRAM_ready[0:7]
+addSignal -h 15 -holdScope controller_cur_row[5:0]
+addSignal -h 15 -holdScope controller_cur_state[2:0]
+addSignal -h 15 -holdScope transfer_controller_done
+addGroup "G4"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/map_col[9:0]
+addSignal -h 15 -holdScope map_row[9:0]
+addSignal -h 15 -holdScope col_length[5:0]
+addSignal -h 15 -holdScope row_length[5:0]
+addSignal -h 15 -holdScope next_state[2:0]
+addSignal -h 15 -holdScope cur_state[2:0]
+addSignal -h 15 -holdScope pre_state[2:0]
+addSignal -h 15 -holdScope tile_col[5:0]
+addSignal -h 15 -holdScope tile_row[5:0]
+addSignal -h 15 -holdScope col_index[9:0]
+addSignal -h 15 -holdScope row_index[9:0]
+addSignal -h 15 -holdScope input_SRAM_rw_select[0:7]
+addSignal -expanded -h 15 -holdScope input_buffer_rw_select[0:1]
+addGroup "G5"
+addSignal -h 15 /top_tb/top_1/DMA_1/DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -h 15 -holdScope BUF_ADDR_start[6:0]
+addSignal -h 15 -holdScope DRAM_addr[31:0]
+addSignal -h 15 -holdScope DMA_start
+addSignal -h 15 -holdScope DMA_done
+addSignal -h 15 -holdScope SRAM_type
+addSignal -h 15 -holdScope buf_select
+addSignal -h 15 -holdScope cur_state[3:0]
+addSignal -h 15 -holdScope input_buffer_A[0][6:0]
+addSignal -h 15 -holdScope input_buffer_CEN[0]
+addSignal -h 15 -holdScope input_buffer_DI[0][127:0]
+addSignal -h 15 -holdScope input_buffer_WEN[0]
+addSignal -expanded -h 15 -holdScope buffer[0:8]
+addSignal -h 15 -holdScope buffer[0][31:0]
+addSignal -h 15 -holdScope buffer[1][31:0]
+addSignal -h 15 -holdScope buffer[2][31:0]
+addSignal -h 15 -holdScope buffer[3][31:0]
+addSignal -expanded -h 15 /top_tb/top_1/u_input_buf[0]/input_buf_i/Data[0:90]
+addSignal -h 15 -UNSIGNED -HEX -holdScope Data[0][127:0]
+addSignal -h 15 -holdScope Data[1][127:0]
+addSignal -h 15 -holdScope Data[2][127:0]
+addSignal -h 15 -holdScope Data[3][127:0]
+addSignal -h 15 -holdScope Data[4][127:0]
+addSignal -h 15 -holdScope Data[5][127:0]
+addSignal -h 15 -holdScope Data[6][127:0]
+addSignal -h 15 -holdScope Data[7][127:0]
+addSignal -h 15 -holdScope Data[8][127:0]
+addSignal -h 15 -holdScope Data[9][127:0]
+addSignal -h 15 -holdScope Data[10][127:0]
+addSignal -h 15 -holdScope Data[11][127:0]
+addSignal -h 15 -holdScope Data[12][127:0]
+addSignal -h 15 -holdScope Data[13][127:0]
+addSignal -h 15 -holdScope A[6:0]
+addSignal -h 15 -holdScope CEN
+addSignal -h 15 -holdScope D[127:0]
+addSignal -h 15 -holdScope WEN
+addSignal -h 15 /top_tb/top_1/mux_buffer_1/input_buffer_A[0:1]
+addSignal -h 15 -holdScope input_buffer_A_read[0:1]
+addSignal -h 15 -holdScope input_buffer_A_write[0:1]
+addSignal -h 15 -holdScope input_buffer_CEN[0:1]
+addSignal -h 15 -holdScope input_buffer_CEN_read[0:1]
+addSignal -h 15 -holdScope input_buffer_CEN_write[0:1]
+addSignal -expanded -h 15 -holdScope rw_select[0:1]
+addSignal -h 15 -holdScope rw_select[0]
+addSignal -h 15 -holdScope rw_select[1]
+addGroup "G6"
+addSignal -h 15 /top_tb/top_1/buffer2sram_input_1/BUF_ADDR_start[7:0]
+addSignal -h 15 -holdScope BUF_ADDR_end[7:0]
+addSignal -h 15 -holdScope SRAM_ADDR_start[9:0]
+addSignal -h 15 -holdScope buffer2sram_start
+addSignal -h 15 -holdScope buffer2sram_done
+addSignal -h 15 -holdScope input_buffer_DO[0][127:0]
+addSignal -h 15 -holdScope input_buffer_CEN_read[0]
+addSignal -h 15 -holdScope input_buffer_A_read[0][6:0]
+addSignal -h 15 -holdScope input_buffer_OEN[0]
+addSignal -h 15 -holdScope input_SRAM_DI[0:7]
+addSignal -expanded -h 15 -holdScope input_SRAM_A_write[0:7]
+addSignal -h 15 -holdScope input_SRAM_A_write[0][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[1][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[2][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[3][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[4][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[5][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[6][6:0]
+addSignal -h 15 -holdScope input_SRAM_A_write[7][6:0]
+addSignal -h 15 -holdScope input_SRAM_CEN_write[0:7]
+addSignal -h 15 -holdScope input_SRAM_WEN[0:7]
+addSignal -h 15 -holdScope buf_select
+addSignal -expanded -h 15 /top_tb/top_1/mux_sram_1/input_rw_select[0:7]
+addSignal -h 15 -holdScope input_rw_select[0]
+addSignal -h 15 -holdScope input_rw_select[1]
+addSignal -h 15 -holdScope input_rw_select[2]
+addSignal -h 15 -holdScope input_rw_select[3]
+addSignal -h 15 -holdScope input_rw_select[4]
+addSignal -h 15 -holdScope input_rw_select[5]
+addSignal -h 15 -holdScope input_rw_select[6]
+addSignal -h 15 -holdScope input_rw_select[7]
+addGroup "G7"
+addSignal -h 15 /top_tb/top_1/u_input_SRAM[0]/input_SRAM_i/A[6:0]
+addSignal -h 15 -holdScope D[127:0]
+addSignal -h 15 /top_tb/top_1/mux_sram_1/input_SRAM_A[0:7]
+addSignal -h 15 -holdScope input_SRAM_A_read[0:7]
+addSignal -h 15 -holdScope input_SRAM_A_write[0:7]
+addSignal -expanded -h 15 /top_tb/top_1/u_input_SRAM[0]/input_SRAM_i/Data[0:90]
+addSignal -h 15 -holdScope Data[0][127:0]
+addSignal -h 15 -holdScope Data[1][127:0]
+addSignal -h 15 -holdScope Data[2][127:0]
+addSignal -h 15 -holdScope Data[3][127:0]
+addSignal -h 15 -holdScope Data[4][127:0]
+addSignal -h 15 -holdScope Data[5][127:0]
+addSignal -h 15 -holdScope Data[6][127:0]
+addSignal -h 15 -holdScope Data[7][127:0]
+addSignal -h 15 -holdScope Data[8][127:0]
+addSignal -h 15 -holdScope Data[9][127:0]
+addSignal -h 15 -holdScope Data[10][127:0]
+addSignal -h 15 -holdScope Data[11][127:0]
+addSignal -h 15 -holdScope Data[12][127:0]
+addSignal -h 15 -holdScope Data[13][127:0]
+addGroup "G8"
+
+; getSignalForm Scope Hierarchy Status
+; active file of getSignalForm
+activeDirFile "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+
+GETSIGNALFORM_SCOPE_HIERARCHY_BEGIN
+getSignalForm close
+
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/DMA_1"
+"/top_tb/top_1/buffer2sram_input_1"
+"/top_tb/top_1/mux_sram_1"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1/u_input_SRAM[0]"
+"/top_tb/top_1/u_input_SRAM[0]/input_SRAM_i"
+"/top_tb/top_1/u_input_buf[0]"
+"/top_tb/top_1/u_input_buf[0]/input_buf_i"
+
+SCOPE_LIST_BEGIN
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1/DMA_1"
+"/top_tb/top_1/buffer2sram_input_1"
+"/top_tb/top_1/u_input_buf[0]"
+"/top_tb/top_1/u_input_buf[0]/input_buf_i"
+"/top_tb/top_1/DMA_1/Unnamed_$DMA_sv_330"
+"/top_tb/top_1/u_input_SRAM[0]"
+"/top_tb/top_1/u_input_SRAM[0]/input_SRAM_i"
+"/top_tb/top_1/buffer2sram_input_1/Unnamed_$buffer2sram_input_sv_159"
+"/top_tb/top_1/buffer2sram_input_1/Unnamed_$buffer2sram_input_sv_114"
+"/top_tb/top_1/mux_buffer_1"
+"/top_tb/top_1/mux_sram_1"
+SCOPE_LIST_END
+
+GETSIGNALFORM_SCOPE_HIERARCHY_END
+
+

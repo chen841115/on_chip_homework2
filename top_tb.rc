@@ -1,0 +1,189 @@
+Magic 271485
+Revision Verdi_O-2018.09
+
+; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
+viewPort -8 -8 1920 1137 318 256
+
+; File list:
+; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
+openDirFile -d / "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+
+; file time scale:
+; fileTimeScale ### s|ms|us|ns|ps
+
+; signal spacing:
+signalSpacing 5
+
+; windowTimeUnit is used for zoom, cursor & marker
+; waveform viewport range
+zoom 564717.199383 880594.699383
+cursor 615000.000000
+marker 0.000000
+
+; user define markers
+; userMarker time_pos marker_name color linestyle
+; visible top row signal index
+top 0
+; marker line index
+markerPos 67
+
+; event list
+; addEvent event_name event_expression
+; curEvent event_name
+
+
+
+COMPLEX_EVENT_BEGIN
+
+
+COMPLEX_EVENT_END
+
+
+
+; toolbar current search type
+; curSTATUS search_type
+curSTATUS ByChange
+
+
+addGroup "G1"
+activeDirFile "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+addSignal -h 15 /top_tb/top_1/clk
+addSignal -h 15 -holdScope rst
+addSignal -h 15 /top_tb/top_1/controller_1/cur_col[5:0]
+addSignal -h 15 -holdScope cur_row[5:0]
+addSignal -h 15 -holdScope cur_state[2:0]
+addSignal -expanded -h 15 /top_tb/top_1/u_output_SRAM[0]/output_SRAM_i/Data[0:2879]
+addSignal -h 15 -holdScope Data[0][31:0]
+addSignal -h 15 -holdScope Data[1][31:0]
+addSignal -h 15 -holdScope Data[2][31:0]
+addSignal -h 15 -holdScope Data[3][31:0]
+addSignal -h 15 -holdScope Data[4][31:0]
+addSignal -h 15 -holdScope Data[5][31:0]
+addSignal -h 15 -holdScope Data[6][31:0]
+addSignal -h 15 -holdScope Data[7][31:0]
+addSignal -h 15 -holdScope Data[8][31:0]
+addSignal -h 15 -holdScope Data[9][31:0]
+addSignal -h 15 -holdScope Data[10][31:0]
+addSignal -h 15 -holdScope Data[11][31:0]
+addSignal -h 15 -holdScope Data[12][31:0]
+addSignal -h 15 -holdScope Data[13][31:0]
+addSignal -h 15 -holdScope Data[14][31:0]
+addSignal -h 15 -holdScope Data[15][31:0]
+addSignal -h 15 -holdScope Data[16][31:0]
+addSignal -h 15 -holdScope Data[17][31:0]
+addSignal -h 15 -holdScope Data[18][31:0]
+addSignal -h 15 -holdScope Data[19][31:0]
+addSignal -h 15 -holdScope Data[20][31:0]
+addSignal -h 15 -holdScope Data[21][31:0]
+addSignal -h 15 -holdScope Data[22][31:0]
+addSignal -h 15 -holdScope Data[23][31:0]
+addSignal -h 15 -holdScope Data[24][31:0]
+addSignal -h 15 -holdScope Data[25][31:0]
+addSignal -h 15 -holdScope Data[26][31:0]
+addSignal -h 15 -holdScope Data[27][31:0]
+addSignal -h 15 -holdScope Data[28][31:0]
+addSignal -h 15 -holdScope Data[29][31:0]
+addSignal -h 15 -holdScope Data[30][31:0]
+addSignal -h 15 -holdScope Data[31][31:0]
+addSignal -h 15 -holdScope Data[32][31:0]
+addSignal -h 15 -holdScope Data[33][31:0]
+addSignal -h 15 -holdScope Data[34][31:0]
+addSignal -h 15 -holdScope Data[35][31:0]
+addSignal -h 15 -holdScope Data[36][31:0]
+addSignal -h 15 -holdScope Data[37][31:0]
+addSignal -h 15 -holdScope Data[38][31:0]
+addSignal -h 15 -holdScope Data[39][31:0]
+addSignal -h 15 -holdScope Data[40][31:0]
+addSignal -h 15 -holdScope Data[41][31:0]
+addSignal -h 15 -holdScope Data[42][31:0]
+addSignal -h 15 -holdScope Data[43][31:0]
+addSignal -h 15 -holdScope Data[44][31:0]
+addSignal -h 15 -holdScope Data[45][31:0]
+addSignal -h 15 -holdScope Data[46][31:0]
+addSignal -h 15 -holdScope Data[47][31:0]
+addSignal -h 15 -holdScope Data[48][31:0]
+addSignal -h 15 -holdScope Data[49][31:0]
+addSignal -h 15 -holdScope Data[50][31:0]
+addSignal -h 15 -holdScope Data[51][31:0]
+addSignal -h 15 -holdScope Data[52][31:0]
+addSignal -h 15 -holdScope Data[53][31:0]
+addSignal -h 15 -holdScope Data[54][31:0]
+addSignal -h 15 -holdScope Data[55][31:0]
+addSignal -h 15 -holdScope Data[56][31:0]
+addSignal -h 15 -holdScope Data[57][31:0]
+addSignal -h 15 -holdScope Data[58][31:0]
+addSignal -h 15 -holdScope Data[59][31:0]
+addSignal -h 15 -holdScope Data[60][31:0]
+addSignal -expanded -h 15 /top_tb/top_1/controller_1/input_SRAM_DO[0:7]
+addSignal -h 15 -holdScope input_SRAM_DO[0][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[1][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[2][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[3][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[4][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[5][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[6][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[7][127:0]
+addSignal -expanded -h 15 -holdScope input_SRAM_A[0:7]
+addSignal -h 15 -holdScope input_SRAM_A[0][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[1][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[2][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[3][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[4][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[5][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[6][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[7][6:0]
+addSignal -expanded -h 15 /top_tb/top_1/input_SRAM_CEN[0:15]
+addSignal -h 15 -holdScope input_SRAM_CEN[0]
+addSignal -h 15 -holdScope input_SRAM_CEN[1]
+addSignal -h 15 -holdScope input_SRAM_CEN[2]
+addSignal -h 15 -holdScope input_SRAM_CEN[3]
+addSignal -h 15 -holdScope input_SRAM_CEN[4]
+addSignal -h 15 -holdScope input_SRAM_CEN[5]
+addSignal -h 15 -holdScope input_SRAM_CEN[6]
+addSignal -h 15 -holdScope input_SRAM_CEN[7]
+addSignal -h 15 -holdScope input_SRAM_CEN[8]
+addSignal -h 15 -holdScope input_SRAM_CEN[9]
+addSignal -h 15 -holdScope input_SRAM_CEN[10]
+addSignal -h 15 -holdScope input_SRAM_CEN[11]
+addSignal -h 15 -holdScope input_SRAM_CEN[12]
+addSignal -h 15 -holdScope input_SRAM_CEN[13]
+addSignal -h 15 -holdScope input_SRAM_CEN[14]
+addSignal -h 15 -holdScope input_SRAM_CEN[15]
+addSignal -h 15 -holdScope input_SRAM_OEN[0:15]
+addSignal -h 15 -holdScope input_SRAM_WEN[0:15]
+addSignal -expanded -h 15 -holdScope input_SRAM_OEN_con[0:7]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[0]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[1]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[2]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[3]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[4]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[5]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[6]
+addSignal -h 15 -holdScope input_SRAM_OEN_con[7]
+addGroup "G2"
+
+; getSignalForm Scope Hierarchy Status
+; active file of getSignalForm
+activeDirFile "" "/home/hsiao/CU_RTL/AI_on_chip/build/top_tb.fsdb"
+
+GETSIGNALFORM_SCOPE_HIERARCHY_BEGIN
+getSignalForm close
+
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/controller_1"
+"/top_tb/top_1/u_output_SRAM[0]"
+
+SCOPE_LIST_BEGIN
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/controller_1"
+"/top_tb/top_1/u_input_SRAM[0]"
+"/top_tb/top_1/u_input_SRAM[0]/input_SRAM_i"
+"/top_tb/top_1/u_output_SRAM[0]/output_SRAM_i"
+"/top_tb/top_1/u_output_SRAM[0]"
+SCOPE_LIST_END
+
+GETSIGNALFORM_SCOPE_HIERARCHY_END
+
+
