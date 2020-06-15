@@ -80,6 +80,7 @@ module DMA(
     logic   [3:0]   cur_state,next_state,pre_state;
     logic   load_done;
 	logic	[31:0]	DRAM_addr;
+	logic	[31:0]	next_DRAM_addr;
 	logic	[6:0]	input_buf_A_predict;
 
     logic   [31:0]  buffer[0:8];
@@ -521,7 +522,7 @@ module DMA(
 		begin
 			if(cur_state == 4'b0001 && pre_state == 4'b0000)
 				DRAM_addr	<=	DRAM_ADDR_start;
-			else if(cur_state == 4'b0001)
+			else if(cur_state == 4'b0011)
 				DRAM_addr	<=	DRAM_addr + 3'b100;
 			else if(DMA_done)
 				DRAM_addr	<=	'b0;
@@ -582,6 +583,16 @@ module DMA(
             cur_state   <=  next_state;
     end
 
+	//next_DRAM_addr
+	assign next_DRAM_addr = DRAM_addr + 3'b100;
+	// always_ff @(posedge clk, posedge rst)
+	// begin
+	// 	if(rst)
+	// 		next_DRAM_addr	<=	32'b0;
+	// 	else if(cur_state == 4'b0010)
+	// 		next_DRAM_addr	<=	DRAM_addr + 3'b100;
+	// end
+
 	//output sram access
 	//cur_addr
 	always_ff @(posedge clk, posedge rst)
@@ -590,13 +601,10 @@ module DMA(
 			cur_addr	<=	'b0;
 		else if(DMA_type == 1'b1)
 		begin
-			if(cur_state == 'b0001)
-			begin
-				if(pre_state == 'b0000)
-					cur_addr	<=	Output_SRAM_ADDR_start;
-				else
-					cur_addr	<=	cur_addr + 1'b1;
-			end
+			if(cur_state == 4'b0001 || pre_state == 4'b0000)
+				cur_addr	<=	Output_SRAM_ADDR_start;
+			else if(cur_state == 4'b0011)
+				cur_addr	<=	cur_addr + 1'b1;
 			else
 				cur_addr	<=	cur_addr;
 		end
@@ -661,8 +669,12 @@ module DMA(
 				if(pre_state == 'b0000)
 					output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	Output_SRAM_ADDR_start;
 				else
-					output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]] + 1'b1;
+					output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]];
 			end
+			else if(cur_state == 4'b0010 && DRAM_addr[11:2] != 10'd1022)
+				output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]] + 1'b1;
+			else if(cur_state == 4'b0011 && DRAM_addr[11:2] != 10'd1022)
+				output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]] + 1'b1;
 			else
 				output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]];
 		end
@@ -676,7 +688,7 @@ module DMA(
 			DRAM_D	<=	'b0;
 		else if(DMA_type == 1'b1)
 		begin
-			if(cur_state == 4'b0011)
+			if(cur_state == 4'b0010 || cur_state == 4'b0011)
 				DRAM_D	<=	output_SRAM_DO_DMA[cur_addr[17:12]];
 			else
 				DRAM_D	<=	'b0;
@@ -780,10 +792,12 @@ module DMA(
 				4'b0011:
 					if(DMA_done)
 						next_state = 4'b0000;
+					else if(next_DRAM_addr[11:2] == 10'b0)
+						next_state = 4'b0010;
 					else
-						next_state = 4'b0001;
+						next_state = 4'b0011;
 				default:
-					next_state = 4'b000;
+					next_state = 4'b0000;
 			endcase
 		end
 		else

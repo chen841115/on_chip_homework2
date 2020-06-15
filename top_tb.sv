@@ -108,7 +108,7 @@ module top_tb;
     end
 
 	initial begin
-        #(`CYCLE*3000000)
+        #(`CYCLE*300000)
         for(i=0;i<60;i++)
         begin
             $display("%6h : %h",`INPUT_START + i,`mem_word(`INPUT_START + i));

@@ -461,7 +461,7 @@ module controller(
 	end
 
 	// may have some problem
-	assign output_SRAM_AB_prdict = (cur_row << 5) + (cur_row << 4) + (cur_row << 2) + cur_col;
+	assign output_SRAM_AB_prdict = (cur_row << 5) + (cur_row << 4) + (cur_row << 1) + cur_col;
 	//output_SRAM_AB
 	always_ff  @(posedge clk, posedge rst)
 	begin
