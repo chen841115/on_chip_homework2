@@ -1,3 +1,4 @@
+`define WEIGHT_START 'h100000
 `define OUTPUT_START 'h180000
 module transfer_controller(
     clk,
@@ -12,6 +13,8 @@ module transfer_controller(
     DRAM_ADDR_start,
     DRAM_ADDR_end,
     BUF_ADDR_start,
+	WEIGHT_SRAM_ADDR_start,
+	WEIGHT_SRAM_ADDR_end,
 	Output_SRAM_ADDR_start,
 	Output_SRAM_ADDR_end,
     DMA_start,
@@ -41,7 +44,8 @@ module transfer_controller(
 	//input_SRAM_rw_select input_buffer_rw_select
 	input_SRAM_rw_select,
 	input_buffer_rw_select,
-	output_sram_read_select
+	output_sram_read_select,
+	weight_SRAM_rw_select
 );
 
     input   clk;
@@ -55,6 +59,8 @@ module transfer_controller(
     output	logic	[31:0]	DRAM_ADDR_start;
     output	logic	[31:0]	DRAM_ADDR_end;
     output	logic	[6:0]	BUF_ADDR_start;
+	output	logic	[12:0]	WEIGHT_SRAM_ADDR_start;
+	output	logic	[12:0]	WEIGHT_SRAM_ADDR_end;
 	output	logic	[17:0]	Output_SRAM_ADDR_start;
 	output	logic	[17:0]	Output_SRAM_ADDR_end;
 	output	logic	DMA_start;
@@ -84,6 +90,7 @@ module transfer_controller(
 	output	logic	input_SRAM_rw_select	[0:51];
 	output	logic	input_buffer_rw_select	[0:1];
 	output	logic	output_sram_read_select;
+	output	logic	weight_SRAM_rw_select;
 	output	logic	DMA_type;
 
     //
@@ -103,15 +110,171 @@ module transfer_controller(
 	logic	[5:0]	output_sram_row_index;
 	logic	[19:0]	output_sram_map_total_size;
 	logic	[15:0]	cur_filter;
+	//filter_parting_cur_state
+	logic	[2:0]	filter_parting_cur_state;
+	logic	[2:0]	filter_parting_next_state;
+	logic	[2:0]	filter_parting_pre_state;
+	logic	[9:0]	filter_index;
+	logic	[5:0]	filter_parting;
+	logic	[5:0]	filter_limit;
+	logic	[15:0]	one_filter_size;
+	logic	[9:0]	filter_channel;
+	logic	[9:0]	filter_channel_length;
+	logic	transfer_controller_run;
 
 	logic	read_buf_select;
 
-	assign	SRAM_type	=	1'b0;
+	//assign	SRAM_type	=	1'b0;
 	assign	tile_col	=	col_index	-	map_col;
 	assign	tile_row	=	row_index	-	map_row;
 	assign	row_end	=	row_length	-	1'b1;
 	assign	col_end	=	col_length	-	1'b1;
+	assign	one_filter_size	=	kernel_size * kernel_size * channel;	
 
+	//filter_parting
+	//filter_parting_cur_state
+	always_ff @(posedge clk, posedge rst) 
+    begin
+        if(rst)
+            filter_parting_cur_state   <=  3'b0;
+        else
+            filter_parting_cur_state   <=  filter_parting_next_state;
+    end
+	always_ff @(posedge clk, posedge rst) 
+    begin
+        if(rst)
+            filter_parting_pre_state   <=  3'b0;
+        else
+            filter_parting_pre_state   <=  filter_parting_cur_state;
+    end
+
+	always_comb
+	begin
+		case(filter_parting_cur_state)
+			3'b000:
+				if(run)
+					filter_parting_next_state	=	3'b001;
+				else
+					filter_parting_next_state	=	3'b000;
+			3'b001:
+				filter_parting_next_state	=	3'b010;
+			3'b010:
+				if(~DMA_done)
+					filter_parting_next_state	=	3'b011;
+				else
+					filter_parting_next_state	=	3'b010;
+			3'b011:
+				if(DMA_done)
+					filter_parting_next_state	=	3'b100;
+				else
+					filter_parting_next_state	=	3'b011;
+			3'b100:
+				if(filter_parting < filter_limit - 1'b1)
+					filter_parting_next_state	=	3'b010;
+				else
+					filter_parting_next_state	=	3'b101;
+			3'b101:
+				if(transfer_controller_done)
+					filter_parting_next_state	=	3'b110;
+				else
+					filter_parting_next_state	=	3'b101;
+			3'b110:
+				if(filter_index + 6'd32 >= kernel_num)
+					filter_parting_next_state	=	3'b111;
+				else
+					filter_parting_next_state	=	3'b001;
+			3'b111:
+				filter_parting_next_state	=	3'b111;
+			default:
+				filter_parting_next_state	=	3'b000;
+		endcase
+	end
+
+	//filter_index
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			filter_index	<=	10'b0;
+		else if(filter_parting_cur_state == 3'b001)
+		begin
+			if(filter_parting_pre_state == 3'b000)
+				filter_index	<=	10'b0;
+			else 
+				filter_index	<=	filter_index + 6'd32;
+		end
+	end
+
+	//filter_parting
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			filter_parting	<=	6'b0;
+		else if(filter_parting_cur_state == 3'b001)
+			filter_parting	<=	6'b0;
+		else if(filter_parting_cur_state == 3'b010 && filter_parting_pre_state != 3'b001)
+			filter_parting	<=	filter_parting + 1'b1;
+	end
+
+	//filter_limit
+	always_comb
+	begin
+		if(filter_index + 6'd32 < kernel_num)
+			filter_limit	=	6'd32;
+		else 
+			filter_limit	=	kernel_num - filter_index;
+	end
+
+	//WEIGHT_SRAM_ADDR_start
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			WEIGHT_SRAM_ADDR_start	<=	'b0;
+		else if(filter_parting_cur_state == 3'b011)
+		begin
+			WEIGHT_SRAM_ADDR_start[6:0]	<=	7'b0;
+			WEIGHT_SRAM_ADDR_start[12:7]<=	filter_parting;
+		end
+	end
+	//WEIGHT_SRAM_ADDR_end
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			WEIGHT_SRAM_ADDR_end	<=	'b0;
+		else if(filter_parting_cur_state == 3'b011)
+		begin
+			if(kernel_size == 'd3)
+			begin
+				WEIGHT_SRAM_ADDR_end[6:0]	<=	filter_channel_length - 1'b1;
+				WEIGHT_SRAM_ADDR_end[12:7]	<=	filter_parting;
+			end
+		end
+	end
+	//transfer_controller_run
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			transfer_controller_run	<=	1'b0;
+		else if(filter_parting_cur_state == 3'b101)
+			transfer_controller_run	<=	1'b1;
+		else 
+			transfer_controller_run	<=	1'b0;
+	end
+	//filter_channel
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			filter_channel	<=	'b0;
+	end
+	//filter_parting END
+
+	//filter_channel_length
+	always_comb
+	begin
+		if(filter_channel + 8'd128 >= channel)
+			filter_channel_length	=	channel - filter_channel;
+		else
+			filter_channel_length	=	8'd128;
+	end
 
 	//controller_run
 	always_ff @(posedge clk, posedge rst) 
@@ -147,41 +310,41 @@ module transfer_controller(
 	always_comb
 	begin
 		case(cur_state)
-			'b00:
-				if(run)
+			'b0000:
+				if(transfer_controller_run)
 					next_state	=	'b1;
 				else
 					next_state	=	'b0;
-			'b01:
+			'b0001:
 				next_state	=	'b10;
-			'b10:
+			'b0010:
 				if(~DMA_done)
 					next_state	=	'b11;
 				else
 					next_state	=	'b10;
-			'b11:
+			'b0011:
 				if(DMA_done)
 					next_state	=	'b100;
 				else
 					next_state	=	'b11;
-			'b100:
+			'b0100:
 				if(input_buffer2sram_done)
 					next_state	=	'b110;
 				else
 					next_state	=	'b100;
-			'b101:
+			'b0101:
 				// if(tile_done)
 				// 	next_state	=	'b001;
 				if(tile_done)
 				begin
-					if(cur_channel	<	channel - 1'b1)
+					if(cur_channel	<	filter_channel_length - 1'b1)
 						next_state	=	'b010;
 					else
 						next_state	=	'b111;
 				end
 				else
 					next_state	=	'b101;
-			'b110:
+			'b0110:
 				if(row_index >=  map_row + row_length - 1'b1)
 				begin
 					if(~tile_done)
@@ -193,7 +356,7 @@ module transfer_controller(
 					next_state	=	'b11;
 				else
 					next_state	=	'b110;
-			'b111:
+			'b0111:
 				next_state	=	'b1000;
 				//next_state	=	'b010;
 			'b1000:
@@ -331,6 +494,12 @@ module transfer_controller(
 			DRAM_ADDR_start	<=	((output_sram_map_total_size * cur_filter) + (output_sram_row_index * ouput_map_size) + `OUTPUT_START + map_col) << 2;
 			DRAM_ADDR_end	<=	((output_sram_map_total_size * cur_filter) + (output_sram_row_index * ouput_map_size) + 'd49 + `OUTPUT_START + map_col) << 2;
 		end
+		else if(filter_parting_cur_state == 3'b011)
+		begin
+			DRAM_ADDR_start	<=	(((filter_index + filter_parting)*one_filter_size) + `WEIGHT_START) << 2;
+			if(kernel_size == 'd3)
+				DRAM_ADDR_end	<=	(((filter_index + filter_parting)*one_filter_size) + `WEIGHT_START + (kernel_size*kernel_size*filter_channel_length) - 1'b1) << 2;
+		end
 	end
 
 	//col_length
@@ -409,6 +578,8 @@ module transfer_controller(
 			else
 				DMA_start	<=	'b0;
 		end
+		else if(filter_parting_cur_state == 3'b011 && filter_parting_pre_state != 3'b011)
+			DMA_start	<=	'b1;
 		else
 			DMA_start	<=	'b0;
 	end
@@ -621,5 +792,26 @@ module transfer_controller(
 			cur_filter	<=	'b0;
 	end
 
+	//SRAM_type
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			SRAM_type	<=	1'b0;
+		else if(filter_parting_cur_state == 3'b011)
+			SRAM_type	<=	1'b1;
+		else 
+			SRAM_type	<=	1'b0;
+	end
+
+	//weight_SRAM_rw_select
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			weight_SRAM_rw_select	<=	1'b0;
+		else if(filter_parting_cur_state == 3'b011)
+			weight_SRAM_rw_select	<=	1'b1;
+		else
+			weight_SRAM_rw_select	<=	1'b0;
+	end
 
 endmodule

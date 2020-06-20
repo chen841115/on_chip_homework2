@@ -10,6 +10,7 @@
 `include "transfer_controller.sv"
 `include "mux_buffer.sv"
 `include "mux_sram.sv"
+`include "mux_weight_sram.sv"
 `include "mux_output_sram_read.sv"
 
 module top(
@@ -139,6 +140,8 @@ module top(
 	//DMA
 	logic	[31:0]  DRAM_ADDR_start,DRAM_ADDR_end;
 	logic	[6:0]	BUF_ADDR_start_write;
+	logic	[12:0]	WEIGHT_SRAM_ADDR_start;
+	logic	[12:0]	WEIGHT_SRAM_ADDR_end;
 	logic	[17:0]	Output_SRAM_ADDR_start,Output_SRAM_ADDR_end;
 	logic	DMA_start,DMA_done;
 	logic	SRAM_type,DMA_buf_select;
@@ -181,6 +184,16 @@ module top(
 		.input_SRAM_CEN(input_SRAM_CEN),
 	    .input_SRAM_CEN_read(input_SRAM_CEN_read),
 	    .input_SRAM_CEN_write(input_SRAM_CEN_write)
+	);
+
+	mux_weight_sram mux_weight_sram_1(
+	    .weight_SRAM_rw_select(weight_SRAM_rw_select),
+	    .weight_SRAM_A(weight_SRAM_A),
+	    .weight_SRAM_A_read(weight_SRAM_A_read),
+	    .weight_SRAM_A_write(weight_SRAM_A_write),
+		.weight_SRAM_CEN(weight_SRAM_CEN),
+	    .weight_SRAM_CEN_read(weight_SRAM_CEN_read),
+	    .weight_SRAM_CEN_write(weight_SRAM_CEN_write)
 	);
 
 	mux_buffer mux_buffer_1(
@@ -239,10 +252,10 @@ module top(
         .input_SRAM_OEN(input_SRAM_OEN),
         //weight_SRAM
         .weight_SRAM_DO(weight_SRAM_DO),
-        .weight_SRAM_A(weight_SRAM_A),
-        .weight_SRAM_CEN(weight_SRAM_CEN),
+        .weight_SRAM_A(weight_SRAM_A_read),
+        .weight_SRAM_CEN(weight_SRAM_CEN_read),
         .weight_SRAM_OEN(weight_SRAM_OEN),
-        .weight_SRAM_WEN(weight_SRAM_WEN),
+        .weight_SRAM_WEN(),
 		//bank_done
 		.cur_row(controller_cur_row),
 		.cur_state(controller_cur_state)
@@ -266,6 +279,8 @@ module top(
 		.DRAM_ADDR_start(DRAM_ADDR_start),
 		.DRAM_ADDR_end(DRAM_ADDR_end),
 		.BUF_ADDR_start(BUF_ADDR_start_write),
+		.WEIGHT_SRAM_ADDR_start(WEIGHT_SRAM_ADDR_start),
+		.WEIGHT_SRAM_ADDR_end(WEIGHT_SRAM_ADDR_end),
 		.Output_SRAM_ADDR_start(Output_SRAM_ADDR_start),
 		.Output_SRAM_ADDR_end(Output_SRAM_ADDR_end),
 		.DMA_start(DMA_start),
@@ -286,16 +301,18 @@ module top(
 		.input_buffer_WEN(input_buffer_WEN),
 		.input_buffer_A(input_buffer_A_write),
 		.input_buffer_DI(input_buffer_DI),
-		//weight_buffer access
-		.weight_buffer_CEN(weight_buffer_CEN_write),
-		.weight_buffer_WEN(weight_buffer_WEN),
-		.weight_buffer_A(weight_buffer_A_write),
-		.weight_buffer_DI(weight_buffer_DI),
+		//weight_SRAM access
+	    .weight_SRAM_CEN_write(weight_SRAM_CEN_write),
+	    .weight_SRAM_WEN(weight_SRAM_WEN),
+	    .weight_SRAM_A_write(weight_SRAM_A_write),
+	    .weight_SRAM_DI(weight_SRAM_DI),
 		//output_sram access
 		.output_SRAM_AB_DMA(output_SRAM_AB_DMA),
 		.output_SRAM_DO_DMA(output_SRAM_DO_DMA),
 		.output_SRAM_OEN_DMA(output_SRAM_OEN_DMA),
-		.output_SRAM_CEN_DMA(output_SRAM_CEN_DMA)
+		.output_SRAM_CEN_DMA(output_SRAM_CEN_DMA),
+		//conv info
+		.kernel_size(kernel_size)
 	);
 
 	buffer2sram_input buffer2sram_input_1(
@@ -331,6 +348,8 @@ module top(
 	    .DRAM_ADDR_start(DRAM_ADDR_start),
 	    .DRAM_ADDR_end(DRAM_ADDR_end),
 	    .BUF_ADDR_start(BUF_ADDR_start_write),
+		.WEIGHT_SRAM_ADDR_start(WEIGHT_SRAM_ADDR_start),
+		.WEIGHT_SRAM_ADDR_end(WEIGHT_SRAM_ADDR_end),
 		.Output_SRAM_ADDR_start(Output_SRAM_ADDR_start),
 		.Output_SRAM_ADDR_end(Output_SRAM_ADDR_end),
 	    .DMA_start(DMA_start),
@@ -360,7 +379,8 @@ module top(
 		//input_SRAM_rw_select input_buffer_rw_select
 		.input_SRAM_rw_select(input_SRAM_rw_select),
 		.input_buffer_rw_select(input_buffer_rw_select),
-		.output_sram_read_select(output_sram_read_select)
+		.output_sram_read_select(output_sram_read_select),
+		.weight_SRAM_rw_select(weight_SRAM_rw_select)
 	);
 
     //SRAM
