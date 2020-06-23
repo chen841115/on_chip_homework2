@@ -354,21 +354,36 @@ module DMA(
 	begin
 		if(rst)
 			DRAM_data_weight_flag	<=	4'b0;
-		else if(cur_state == 4'b0011)
+		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
 		begin
-			if(next_DRAM_addr[11:2] != 10'b0)
+			if(cur_state == 4'b0011)
 			begin
-				DRAM_data_weight_flag[0]	<=	1'b1;
-				DRAM_data_weight_flag[1]	<=	DRAM_data_weight_flag[0];
-				DRAM_data_weight_flag[2]	<=	DRAM_data_weight_flag[1];
-				DRAM_data_weight_flag[3]	<=	DRAM_data_weight_flag[2];
+				if(next_DRAM_addr[11:2] != 10'b0)
+				begin
+					DRAM_data_weight_flag[0]	<=	1'b1;
+					DRAM_data_weight_flag[1]	<=	DRAM_data_weight_flag[0];
+					DRAM_data_weight_flag[2]	<=	DRAM_data_weight_flag[1];
+					DRAM_data_weight_flag[3]	<=	DRAM_data_weight_flag[2];
+				end
+				else
+				begin
+					DRAM_data_weight_flag[0]	<=	1'b0;
+					DRAM_data_weight_flag[1]	<=	DRAM_data_weight_flag[0];
+					DRAM_data_weight_flag[2]	<=	DRAM_data_weight_flag[1];
+					DRAM_data_weight_flag[3]	<=	DRAM_data_weight_flag[2];
+				end
 			end
-			else
+			else if(cur_state == 4'b0000)
 			begin
 				DRAM_data_weight_flag[0]	<=	1'b0;
-				DRAM_data_weight_flag[1]	<=	DRAM_data_weight_flag[0];
-				DRAM_data_weight_flag[2]	<=	DRAM_data_weight_flag[1];
-				DRAM_data_weight_flag[3]	<=	DRAM_data_weight_flag[2];
+				DRAM_data_weight_flag[1]	<=	1'b0;
+				DRAM_data_weight_flag[2]	<=	1'b0;
+				DRAM_data_weight_flag[3]	<=	1'b0;
+				DRAM_data_weight_flag[4]	<=	1'b0;
+				DRAM_data_weight_flag[5]	<=	1'b0;
+				DRAM_data_weight_flag[6]	<=	1'b0;
+				DRAM_data_weight_flag[7]	<=	1'b0;
+				DRAM_data_weight_flag[8]	<=	1'b0;
 			end
 		end
 	end

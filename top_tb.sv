@@ -30,8 +30,10 @@ module top_tb;
 	logic	[3:0]	WEn;	//Write Enable
 	logic	RASn;			//Row Address Select
 	logic	CASn;			//Column Address Select
-	logic	[10:0]	A;		//Address
+	logic	[11:0]	A;		//Address
 	logic	[31:0]	D;		//Data Input
+
+	logic [31:0] GOLDEN[4096];
 
 	DRAM DRAM_1 (
         .CK(clk),  
@@ -46,7 +48,7 @@ module top_tb;
     );
 
     string prog_path;
-	integer i;
+	integer gf, i, num, j,k, err;
 
     top top_1(
         .clk(clk),
@@ -108,23 +110,79 @@ module top_tb;
     end
 
 	initial begin
-        #(`CYCLE*300000)
+        //#(`CYCLE*3800000)
+		#(`CYCLE*1500000)
+		num = 0;
+		gf = $fopen({prog_path, "test/output.txt"}, "r");
+        while (num < 4096)
+        begin
+            $fscanf(gf, "%d\n", GOLDEN[num]);
+            num = num + 1;
+        end
+
         for(i=0;i<60;i++)
         begin
             $display("%6h : %h",`INPUT_START + i,`mem_word(`INPUT_START + i));
         end
 		//$display("%h",`mem_word(1048576));
+		$display("\n");
 		for(i=0;i<60;i++)
         begin
             $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
         end
-
-		for(i=171377;i<171397;i++)
+		$display("\n");
+		for(i=20700;i<20760;i++)
         begin
             $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
         end
 		$display("\n");
-
+		for(i=170982;i<171042;i++)
+        begin
+            $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
+        end
+		$display("\n");
+		num = 414;
+		for (i = 0; i < num; i++)
+		begin
+			if (`mem_word(`OUTPUT_START + i) !== GOLDEN[i])
+			begin
+				$display("DRAM[%8d] = %h, expect = %h", i, `mem_word(`OUTPUT_START + i), GOLDEN[i]);
+				err = err + 1;
+			end
+			else
+			begin
+				$display("DRAM[%8d] = %h, pass", i, `mem_word(`OUTPUT_START + i));
+			end
+		end
+		if (err === 0)
+	    begin
+	        $display("\n");
+	        $display("\n");
+	        $display("        ****************************               ");
+	        $display("        **                        **       |\__||  ");
+	        $display("        **  Congratulations !!    **      / O.O  | ");
+	        $display("        **                        **    /_____   | ");
+	        $display("        **  Simulation PASS!!     **   /^ ^ ^ \\  |");
+	        $display("        **                        **  |^ ^ ^ ^ |w| ");
+	        $display("        ****************************   \\m___m__|_|");
+	        $display("\n");
+	    end
+	    else
+	    begin
+	    	$display("\n");
+	        $display("\n");
+	        $display("        ****************************               ");
+	        $display("        **                        **       |\__||  ");
+	        $display("        **  OOPS!!                **      / X,X  | ");
+	        $display("        **                        **    /_____   | ");
+	        $display("        **  Simulation Failed!!   **   /^ ^ ^ \\  |");
+	        $display("        **                        **  |^ ^ ^ ^ |w| ");
+	        $display("        ****************************   \\m___m__|_|");
+	        $display("         Totally has %d errors                     ", err); 
+	        $display("\n");
+	    end
+		i = 524540;
+		$display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
 		// for(i=0;i<60;i++)
         // begin
         //     $display("outputSRAM0[%6h] : %h",i,`outputSRAM0(i));
