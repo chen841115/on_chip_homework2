@@ -33,7 +33,7 @@ module top_tb;
 	logic	[11:0]	A;		//Address
 	logic	[31:0]	D;		//Data Input
 
-	logic [31:0] GOLDEN[4096];
+	logic [31:0] GOLDEN[2800000];
 
 	DRAM DRAM_1 (
         .CK(clk),  
@@ -48,7 +48,7 @@ module top_tb;
     );
 
     string prog_path;
-	integer gf, i, num, j,k, err;
+	integer gf, i, num, j,k, err, h;
 
     top top_1(
         .clk(clk),
@@ -77,7 +77,13 @@ module top_tb;
     begin
         clk = 0;
         rst = 1;
-        kernel_size = 3;
+        // kernel_size = 3;
+        // stride = 1;
+        // kernel_num = 16;
+        // channel = 3;
+		// map_size = 416;
+		// ouput_map_size = 414;
+		kernel_size = 3;
         stride = 1;
         kernel_num = 16;
         channel = 3;
@@ -94,10 +100,10 @@ module top_tb;
         // $readmemh({prog_path, "/test1.hex"}, DRAM_1.Memory_byte1);
         // $readmemh({prog_path, "/test2.hex"}, DRAM_1.Memory_byte2);
         // $readmemh({prog_path, "/test3.hex"}, DRAM_1.Memory_byte3);
-		$readmemh({prog_path, "test/input0.hex"}, DRAM_1.Memory_byte0);
-        $readmemh({prog_path, "test/input1.hex"}, DRAM_1.Memory_byte1);
-        $readmemh({prog_path, "test/input2.hex"}, DRAM_1.Memory_byte2);
-        $readmemh({prog_path, "test/input3.hex"}, DRAM_1.Memory_byte3);
+		$readmemh({prog_path, "model1/layer1/input0.hex"}, DRAM_1.Memory_byte0);
+        $readmemh({prog_path, "model1/layer1/input1.hex"}, DRAM_1.Memory_byte1);
+        $readmemh({prog_path, "model1/layer1/input2.hex"}, DRAM_1.Memory_byte2);
+        $readmemh({prog_path, "model1/layer1/input3.hex"}, DRAM_1.Memory_byte3);
         #(`CYCLE*10) run = 0;
         //#(`CYCLE*5000) $finish;
     end
@@ -110,39 +116,45 @@ module top_tb;
     end
 
 	initial begin
-        //#(`CYCLE*3800000)
-		#(`CYCLE*1500000)
+        #(`CYCLE*10000000)
+		//#(`CYCLE*1000000)
+		//#(`CYCLE*1800000)
+		//#(`CYCLE*900000)
+		//h = 50 * 50 * 128;
+		h = 414*414*15 + 414 * 122;
 		num = 0;
-		gf = $fopen({prog_path, "test/output.txt"}, "r");
-        while (num < 4096)
+		gf = $fopen({prog_path, "model1/layer1/output.txt"}, "r");
+        while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);
             num = num + 1;
         end
 
-        for(i=0;i<60;i++)
-        begin
-            $display("%6h : %h",`INPUT_START + i,`mem_word(`INPUT_START + i));
-        end
+        // for(i=0;i<60;i++)
+        // begin
+        //     $display("%6h : %h",`INPUT_START + i,`mem_word(`INPUT_START + i));
+        // end
 		//$display("%h",`mem_word(1048576));
+		// $display("\n");
+		// for(i=0;i<60;i++)
+        // begin
+        //     $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
+        // end
 		$display("\n");
-		for(i=0;i<60;i++)
-        begin
-            $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
-        end
+		// for(i=20700;i<20760;i++)
+        // begin
+        //     $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
+        // end
 		$display("\n");
-		for(i=20700;i<20760;i++)
-        begin
-            $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
-        end
+		// for(i=170982;i<171042;i++)
+        // begin
+        //     $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
+        // end
 		$display("\n");
-		for(i=170982;i<171042;i++)
-        begin
-            $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
-        end
-		$display("\n");
-		num = 414;
-		for (i = 0; i < num; i++)
+		//num = 414 * 414 + 414 * 414 * 2;
+		num = 102 * 5 * 1 ;
+		err = 0;
+		for (i = 0; i < h; i++)
 		begin
 			if (`mem_word(`OUTPUT_START + i) !== GOLDEN[i])
 			begin
@@ -151,10 +163,10 @@ module top_tb;
 			end
 			else
 			begin
-				$display("DRAM[%8d] = %h, pass", i, `mem_word(`OUTPUT_START + i));
+				//$display("DRAM[%8d] = %h, pass", i, `mem_word(`OUTPUT_START + i));
 			end
 		end
-		if (err === 0)
+		if (err == 0)
 	    begin
 	        $display("\n");
 	        $display("\n");
@@ -181,7 +193,7 @@ module top_tb;
 	        $display("         Totally has %d errors                     ", err); 
 	        $display("\n");
 	    end
-		i = 524540;
+		i = 2570940;
 		$display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
 		// for(i=0;i<60;i++)
         // begin

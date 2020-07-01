@@ -371,7 +371,7 @@ module controller(
 
 	//ERROR 
 	//filter_times
-	assign filter_times = 	( kernel_num <= 32) ? 6'd1 : {1'b0 , kernel_num[9:5]};
+	assign filter_times = 	6'd1;
 	always_ff  @(posedge clk, posedge rst)
 	begin
 		if(rst)

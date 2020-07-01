@@ -140,6 +140,7 @@ module top(
 	//DMA
 	logic	[31:0]  DRAM_ADDR_start,DRAM_ADDR_end;
 	logic	[6:0]	BUF_ADDR_start_write;
+	logic	[6:0]	BUF_ADDR_end_write;
 	logic	[12:0]	WEIGHT_SRAM_ADDR_start;
 	logic	[12:0]	WEIGHT_SRAM_ADDR_end;
 	logic	[17:0]	Output_SRAM_ADDR_start,Output_SRAM_ADDR_end;
@@ -279,6 +280,7 @@ module top(
 		.DRAM_ADDR_start(DRAM_ADDR_start),
 		.DRAM_ADDR_end(DRAM_ADDR_end),
 		.BUF_ADDR_start(BUF_ADDR_start_write),
+		.BUF_ADDR_end(BUF_ADDR_end_write),
 		.WEIGHT_SRAM_ADDR_start(WEIGHT_SRAM_ADDR_start),
 		.WEIGHT_SRAM_ADDR_end(WEIGHT_SRAM_ADDR_end),
 		.Output_SRAM_ADDR_start(Output_SRAM_ADDR_start),
@@ -348,6 +350,7 @@ module top(
 	    .DRAM_ADDR_start(DRAM_ADDR_start),
 	    .DRAM_ADDR_end(DRAM_ADDR_end),
 	    .BUF_ADDR_start(BUF_ADDR_start_write),
+		.BUF_ADDR_end(BUF_ADDR_end_write),
 		.WEIGHT_SRAM_ADDR_start(WEIGHT_SRAM_ADDR_start),
 		.WEIGHT_SRAM_ADDR_end(WEIGHT_SRAM_ADDR_end),
 		.Output_SRAM_ADDR_start(Output_SRAM_ADDR_start),

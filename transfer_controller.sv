@@ -13,6 +13,7 @@ module transfer_controller(
     DRAM_ADDR_start,
     DRAM_ADDR_end,
     BUF_ADDR_start,
+	BUF_ADDR_end,
 	WEIGHT_SRAM_ADDR_start,
 	WEIGHT_SRAM_ADDR_end,
 	Output_SRAM_ADDR_start,
@@ -59,6 +60,7 @@ module transfer_controller(
     output	logic	[31:0]	DRAM_ADDR_start;
     output	logic	[31:0]	DRAM_ADDR_end;
     output	logic	[6:0]	BUF_ADDR_start;
+	output	logic	[6:0]	BUF_ADDR_end;
 	output	logic	[12:0]	WEIGHT_SRAM_ADDR_start;
 	output	logic	[12:0]	WEIGHT_SRAM_ADDR_end;
 	output	logic	[17:0]	Output_SRAM_ADDR_start;
@@ -184,7 +186,7 @@ module transfer_controller(
 				else
 					filter_parting_next_state	=	3'b001;
 			3'b111:
-				filter_parting_next_state	=	3'b111;
+				filter_parting_next_state	=	3'b000;
 			default:
 				filter_parting_next_state	=	3'b000;
 		endcase
@@ -254,7 +256,7 @@ module transfer_controller(
 	begin
 		if(rst)
 			transfer_controller_run	<=	1'b0;
-		else if(filter_parting_cur_state == 3'b101)
+		else if(filter_parting_cur_state == 3'b101 &&filter_parting_pre_state == 3'b100)
 			transfer_controller_run	<=	1'b1;
 		else 
 			transfer_controller_run	<=	1'b0;
@@ -318,7 +320,9 @@ module transfer_controller(
 			'b0001:
 				next_state	=	'b10;
 			'b0010:
-				if(~DMA_done)
+				if(transfer_controller_done == 1'b1)
+					next_state	=	'b0;
+				else if(~DMA_done)
 					next_state	=	'b11;
 				else
 					next_state	=	'b10;
@@ -362,7 +366,7 @@ module transfer_controller(
 			'b1000:
 				if(DMA_done)
 				begin
-					if(output_sram_row_index >= 49)
+					if(output_sram_row_index >= row_length - kernel_size)
 						next_state	=	'b1010;
 					else
 						next_state	=	'b1001;
@@ -370,7 +374,7 @@ module transfer_controller(
 				else
 					next_state	=	'b1000;
 			'b1001:
-				if(cur_filter >= kernel_num)
+				if(cur_filter >= ((kernel_num > 6'd32)?6'd32:kernel_num))
 					next_state	=	'b001;
 				else if(~DMA_done)
 					next_state	=	'b1000;
@@ -471,6 +475,8 @@ module transfer_controller(
 				end
 			end
 		end
+		else if(cur_state == 'b0000)
+			transfer_controller_done	<=	1'b0;
     end
 
 	assign	map_addr_offset	=	row_index * map_size;
@@ -491,8 +497,8 @@ module transfer_controller(
 		end
 		else if(cur_state == 'b1000)
 		begin
-			DRAM_ADDR_start	<=	((output_sram_map_total_size * cur_filter) + (output_sram_row_index * ouput_map_size) + `OUTPUT_START + map_col) << 2;
-			DRAM_ADDR_end	<=	((output_sram_map_total_size * cur_filter) + (output_sram_row_index * ouput_map_size) + 'd49 + `OUTPUT_START + map_col) << 2;
+			DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + ((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
+			DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + ((output_sram_row_index + map_row) * ouput_map_size) + 'd49 + `OUTPUT_START + map_col) << 2;
 		end
 		else if(filter_parting_cur_state == 3'b011)
 		begin
@@ -552,11 +558,18 @@ module transfer_controller(
 		end
 	end
 
-	//BUF_ADDR_start
+	//BUF_ADDR_start BUF_ADDR_end
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
+		begin
 			BUF_ADDR_start	<=	7'b0;
+			BUF_ADDR_end	<=	7'b0;
+		end
+		else if(cur_state == 4'b0011)
+		begin
+			BUF_ADDR_end	<=	(col_length + 2'd3) >> 2;
+		end
 	end
 
 	//DMA_start
@@ -777,7 +790,7 @@ module transfer_controller(
 		else if(cur_state == 'b1000)
 			output_sram_row_index	<=	output_sram_row_index;
 		else
-			output_sram_row_index	<=	map_row;
+			output_sram_row_index	<=	'b0;
 	end
 	//cur_filter
 	always_ff @(posedge clk, posedge rst)
