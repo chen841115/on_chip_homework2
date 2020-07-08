@@ -12,7 +12,7 @@ module DRAM(
 );
 
     parameter word_size =   32;                                        //Word Size
-    parameter row_size =    12;                                         //Row Size
+    parameter row_size =    13;                                         //Row Size
     parameter col_size =    10;                                         //Column Size
     parameter addr_size = (row_size > col_size)? row_size: col_size; //Address Size    
     parameter addr_size_total = (row_size + col_size );               //Total Address Size

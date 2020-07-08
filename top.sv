@@ -49,7 +49,7 @@ module top(
 	output	logic	[3:0]	WEn;	//Write Enable
 	output	logic	RASn;			//Row Address Select
 	output	logic	CASn;			//Column Address Select
-	output	logic	[11:0]	A;		//Address
+	output	logic	[12:0]	A;		//Address
 	output	logic	[31:0]	D;		//Data Input
 
     //output_SRAM
@@ -345,7 +345,7 @@ module top(
 		.row_end(row_end),
 		.col_end(col_end),
 		.controller_run(controller_run),
-		.cur_channel(controller_cur_channel),
+		.act_cur_channel(controller_cur_channel),
 	    //DMA
 	    .DRAM_ADDR_start(DRAM_ADDR_start),
 	    .DRAM_ADDR_end(DRAM_ADDR_end),

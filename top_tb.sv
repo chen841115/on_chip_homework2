@@ -30,7 +30,7 @@ module top_tb;
 	logic	[3:0]	WEn;	//Write Enable
 	logic	RASn;			//Row Address Select
 	logic	CASn;			//Column Address Select
-	logic	[11:0]	A;		//Address
+	logic	[12:0]	A;		//Address
 	logic	[31:0]	D;		//Data Input
 
 	logic [31:0] GOLDEN[2800000];
@@ -85,10 +85,10 @@ module top_tb;
 		// ouput_map_size = 414;
 		kernel_size = 3;
         stride = 1;
-        kernel_num = 16;
-        channel = 3;
-		map_size = 416;
-		ouput_map_size = 414;
+        kernel_num = 64;
+        channel = 256;
+		map_size = 52;
+		ouput_map_size = 50;
 		run = 0;
 
 
@@ -100,10 +100,10 @@ module top_tb;
         // $readmemh({prog_path, "/test1.hex"}, DRAM_1.Memory_byte1);
         // $readmemh({prog_path, "/test2.hex"}, DRAM_1.Memory_byte2);
         // $readmemh({prog_path, "/test3.hex"}, DRAM_1.Memory_byte3);
-		$readmemh({prog_path, "model1/layer1/input0.hex"}, DRAM_1.Memory_byte0);
-        $readmemh({prog_path, "model1/layer1/input1.hex"}, DRAM_1.Memory_byte1);
-        $readmemh({prog_path, "model1/layer1/input2.hex"}, DRAM_1.Memory_byte2);
-        $readmemh({prog_path, "model1/layer1/input3.hex"}, DRAM_1.Memory_byte3);
+		$readmemh({prog_path, "model1/layer6/input0.hex"}, DRAM_1.Memory_byte0);
+        $readmemh({prog_path, "model1/layer6/input1.hex"}, DRAM_1.Memory_byte1);
+        $readmemh({prog_path, "model1/layer6/input2.hex"}, DRAM_1.Memory_byte2);
+        $readmemh({prog_path, "model1/layer6/input3.hex"}, DRAM_1.Memory_byte3);
         #(`CYCLE*10) run = 0;
         //#(`CYCLE*5000) $finish;
     end
@@ -116,14 +116,14 @@ module top_tb;
     end
 
 	initial begin
-        #(`CYCLE*10000000)
+        //#(`CYCLE*10000000)
 		//#(`CYCLE*1000000)
-		//#(`CYCLE*1800000)
+		#(`CYCLE*5000000)
 		//#(`CYCLE*900000)
 		//h = 50 * 50 * 128;
-		h = 414*414*15 + 414 * 122;
+		h = 50*50*32;
 		num = 0;
-		gf = $fopen({prog_path, "model1/layer1/output.txt"}, "r");
+		gf = $fopen({prog_path, "model1/layer6/output.txt"}, "r");
         while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);

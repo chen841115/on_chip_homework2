@@ -63,7 +63,7 @@ module DMA(
     output  logic   DRAM_RASn;
     output  logic   DRAM_CASn;
     output  logic   [3:0]   DRAM_WEn;
-    output  logic   [11:0]  DRAM_A;
+    output  logic   [12:0]  DRAM_A;
 
     //SRAM access
     output  logic	[127:0]	input_buffer_DI		[0:1];
@@ -704,7 +704,7 @@ module DMA(
 		else if(SRAM_type==1'b0 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0010)
-				DRAM_A	<=	DRAM_addr[23:12];
+				DRAM_A	<=	DRAM_addr[24:12];
 			else if(cur_state == 4'b0011)
 				DRAM_A	<=	{2'b0,DRAM_addr[11:2]};
 			else if(DMA_done)
@@ -713,7 +713,7 @@ module DMA(
 		else if(SRAM_type==1'b1 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0010)
-				DRAM_A	<=	DRAM_addr[23:12];
+				DRAM_A	<=	DRAM_addr[24:12];
 			else if(cur_state == 4'b0011)
 				DRAM_A	<=	{2'b0,DRAM_addr[11:2]};
 			else if(DMA_done)
@@ -722,7 +722,7 @@ module DMA(
 		else if(DMA_type == 1'b1)
 		begin
 			if(cur_state == 4'b0010)
-				DRAM_A	<=	DRAM_addr[23:12];
+				DRAM_A	<=	DRAM_addr[24:12];
 			else if(cur_state == 4'b0011)
 				DRAM_A	<=	{2'b0,DRAM_addr[11:2]};
 			else if(DMA_done)

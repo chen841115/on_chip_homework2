@@ -1,0 +1,471 @@
+Magic 271485
+Revision Verdi_O-2018.09
+
+; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
+viewPort 0 23 1920 1017 297 503
+
+; File list:
+; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
+openDirFile -d / "" "/home/hsiao/on_chip_homework/build/top_tb.fsdb"
+
+; file time scale:
+; fileTimeScale ### s|ms|us|ns|ps
+
+; signal spacing:
+signalSpacing 5
+
+; windowTimeUnit is used for zoom, cursor & marker
+; waveform viewport range
+zoom 9375147527.985561 9375411314.269299
+cursor 9375245000.000000
+marker 0.000000
+
+; user define markers
+; userMarker time_pos marker_name color linestyle
+; visible top row signal index
+top 83
+; marker line index
+markerPos 103
+
+; event list
+; addEvent event_name event_expression
+; curEvent event_name
+
+
+
+COMPLEX_EVENT_BEGIN
+
+
+COMPLEX_EVENT_END
+
+
+
+; toolbar current search type
+; curSTATUS search_type
+curSTATUS ByChange
+
+
+addGroup "G1"
+activeDirFile "" "/home/hsiao/on_chip_homework/build/top_tb.fsdb"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/clk
+addSignal -h 15 -holdScope rst
+addGroup "G7"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -h 15 -holdScope WEIGHT_SRAM_ADDR_start[12:0]
+addSignal -h 15 -holdScope WEIGHT_SRAM_ADDR_end[12:0]
+addSignal -h 15 /top_tb/top_1/DMA_1/BUF_ADDR_start[6:0]
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/filter_channel[9:0]
+addSignal -h 15 -holdScope filter_channel_length[9:0]
+addSignal -h 15 -holdScope filter_index[9:0]
+addSignal -h 15 -holdScope filter_parting[5:0]
+addSignal -h 15 -holdScope filter_limit[5:0]
+addSignal -h 15 -holdScope filter_parting_next_state[2:0]
+addSignal -h 15 -holdScope filter_parting_cur_state[2:0]
+addSignal -h 15 -holdScope filter_parting_pre_state[2:0]
+addSignal -h 15 -holdScope transfer_controller_done
+addSignal -h 15 /top_tb/top_1/DMA_1/DMA_done
+addSignal -h 15 -holdScope DMA_start
+addSignal -h 15 -holdScope DMA_type
+addSignal -h 15 -holdScope SRAM_type
+addSignal -h 15 /top_tb/top_1/u_weight_SRAM[0]/weight_SRAM_i/CEN
+addSignal -h 15 -holdScope D[287:0]
+addSignal -expanded -h 15 -holdScope Data[0:127]
+addSignal -h 15 -holdScope Data[0][287:0]
+addSignal -h 15 -holdScope Data[1][287:0]
+addSignal -h 15 -holdScope Data[2][287:0]
+addSignal -h 15 -holdScope Data[125][287:0]
+addSignal -h 15 -holdScope Data[126][287:0]
+addSignal -h 15 -holdScope Data[127][287:0]
+addSignal -h 15 /top_tb/top_1/u_weight_SRAM[1]/weight_SRAM_i/A[6:0]
+addSignal -h 15 -holdScope D[287:0]
+addSignal -h 15 -holdScope WEN
+addSignal -h 15 -holdScope Data[0][287:0]
+addSignal -h 15 -holdScope Data[1][287:0]
+addSignal -h 15 -holdScope Data[2][287:0]
+addSignal -h 15 -holdScope Data[3][287:0]
+addSignal -h 15 /top_tb/top_1/u_weight_SRAM[0]/weight_SRAM_i/WEN
+addSignal -h 15 /top_tb/top_1/DMA_1/cur_addr[17:0]
+addSignal -h 15 -holdScope weight_SRAM_A_write[0][6:0]
+addSignal -h 15 -holdScope weight_SRAM_A_write[1][6:0]
+addSignal -h 15 -holdScope weight_SRAM_A_write[2][6:0]
+addSignal -h 15 -holdScope weight_SRAM_CEN_write[0:31]
+addSignal -h 15 -holdScope weight_SRAM_DI[0][287:0]
+addSignal -h 15 -holdScope weight_SRAM_WEN[0]
+addSignal -h 15 -holdScope weight_SRAM_WEN[1]
+addSignal -h 15 /top_tb/top_1/u_weight_SRAM[31]/weight_SRAM_i/CEN
+addSignal -h 15 -holdScope D[287:0]
+addSignal -h 15 -holdScope WEN
+addSignal -h 15 /top_tb/top_1/DMA_1/weight_SRAM_A_write[31][6:0]
+addSignal -h 15 -holdScope weight_SRAM_DI[30][287:0]
+addSignal -h 15 -holdScope weight_SRAM_DI[31][287:0]
+addSignal -h 15 /top_tb/top_1/u_weight_SRAM[0]/weight_SRAM_i/A[6:0]
+addSignal -h 15 -holdScope D[287:0]
+addSignal -h 15 -UNSIGNED -UDEC /top_tb/top_1/transfer_controller_1/one_filter_size[15:0]
+addSignal -h 15 -UNSIGNED -HEX /top_tb/top_1/DMA_1/DRAM_A[11:0]
+addSignal -h 15 -holdScope DRAM_RASn
+addSignal -h 15 -holdScope DRAM_CASn
+addSignal -h 15 -holdScope DRAM_Q[31:0]
+addSignal -expanded -h 15 -holdScope buffer[0:8]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[1][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[2][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[3][31:0]
+addSignal -h 15 -holdScope buffer[4][31:0]
+addSignal -h 15 -holdScope buffer[5][31:0]
+addSignal -h 15 -holdScope buffer[6][31:0]
+addSignal -h 15 -holdScope buffer[7][31:0]
+addSignal -h 15 -holdScope buffer[8][31:0]
+addSignal -h 15 -holdScope DRAM_data_count[3:0]
+addSignal -expanded -h 15 -holdScope DRAM_data_flag[3:0]
+addSignal -h 15 -holdScope DRAM_data_flag[3]
+addSignal -h 15 -holdScope DRAM_data_flag[2]
+addSignal -h 15 -holdScope DRAM_data_flag[1]
+addSignal -h 15 -holdScope DRAM_data_flag[0]
+addSignal -h 15 -holdScope input_buffer_A[0][6:0]
+addSignal -h 15 -holdScope input_buffer_DI[0][127:0]
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/weight_SRAM_rw_select
+addSignal -h 15 -holdScope transfer_controller_run
+addSignal -h 15 /top_tb/top_1/mux_weight_sram_1/weight_SRAM_A[0][6:0]
+addSignal -h 15 -holdScope weight_SRAM_A_read[0][6:0]
+addSignal -h 15 -holdScope weight_SRAM_A_write[0][6:0]
+addSignal -h 15 -holdScope weight_SRAM_CEN[0]
+addSignal -h 15 -holdScope weight_SRAM_CEN_read[0]
+addSignal -h 15 -holdScope weight_SRAM_CEN_write[0]
+addSignal -h 15 -holdScope weight_SRAM_rw_select
+addGroup "transfer"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/filter_index[9:0]
+addSignal -h 15 -holdScope transfer_controller_done
+addSignal -h 15 -holdScope transfer_controller_run
+addSignal -h 15 -UNSIGNED -BIN -holdScope cur_state[3:0]
+addSignal -h 15 -holdScope next_state[3:0]
+addSignal -h 15 -holdScope map_col[9:0]
+addSignal -h 15 -holdScope map_row[9:0]
+addSignal -h 15 -holdScope col_index[9:0]
+addSignal -h 15 -holdScope row_index[9:0]
+addSignal -h 15 -holdScope col_length[5:0]
+addSignal -h 15 -holdScope row_length[5:0]
+addSignal -h 15 -holdScope kernel_num[9:0]
+addSignal -h 15 -holdScope filter_channel[9:0]
+addSignal -h 15 -holdScope filter_channel_length[9:0]
+addSignal -h 15 -holdScope filter_parting[5:0]
+addSignal -h 15 -holdScope filter_channel[9:0]
+addSignal -h 15 -holdScope DMA_start
+addSignal -h 15 -holdScope DMA_done
+addSignal -h 15 -holdScope DMA_type
+addSignal -h 15 -holdScope SRAM_type
+addSignal -h 15 -holdScope controller_run
+addSignal -h 15 -holdScope tile_done
+addSignal -h 15 -holdScope tile_col[5:0]
+addSignal -h 15 -holdScope tile_row[5:0]
+addSignal -h 15 -holdScope channel[9:0]
+addSignal -h 15 -holdScope cur_channel[9:0]
+addSignal -h 15 /top_tb/top_1/controller_cur_channel[9:0]
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/output_sram_map_total_size[19:0]
+addSignal -h 15 -holdScope ouput_map_size[9:0]
+addSignal -h 15 -2COMP -UDEC -holdScope cur_filter[15:0]
+addSignal -h 15 -holdScope output_sram_row_index[5:0]
+addGroup "G3"
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/map_addr_offset[19:0]
+addSignal -h 15 -holdScope channal_addr_offset[21:0]
+addSignal -h 15 -holdScope transfer_controller_done
+addGroup "PE_input"
+addSignal -h 15 /top_tb/top_1/controller_1/input_select[0:2]
+addSignal -h 15 /top_tb/top_1/u_input_SRAM[15]/input_SRAM_i/A[6:0]
+addSignal -h 15 -holdScope Data_out[127:0]
+addSignal -h 15 -holdScope Q[127:0]
+addSignal -expanded -h 15 /top_tb/top_1/controller_1/input_SRAM_A[0:51]
+addSignal -h 15 -holdScope input_SRAM_A[0][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[1][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[2][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[3][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[4][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[5][6:0]
+addSignal -h 15 -holdScope input_SRAM_A[6][6:0]
+addSignal -expanded -h 15 -holdScope input_SRAM_DO[0:51]
+addSignal -h 15 -holdScope input_SRAM_DO[0][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[1][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[2][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[3][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[4][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[5][127:0]
+addSignal -h 15 -holdScope input_SRAM_DO[6][127:0]
+addSignal -h 15 /top_tb/top_1/u_input_SRAM[7]/input_SRAM_i/Data[0][127:0]
+addSignal -h 15 /top_tb/top_1/u_input_SRAM[8]/input_SRAM_i/Data[0][127:0]
+addSignal -h 15 /top_tb/top_1/u_input_SRAM[9]/input_SRAM_i/Data[0][127:0]
+addSignal -h 15 /top_tb/top_1/controller_1/cur_state[2:0]
+addSignal -h 15 /top_tb/top_1/controller_1/u_PE[0]/PE_i/rst_reg
+addSignal -expanded -h 15 -holdScope Weight[0:8]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[1][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[2][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[3][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[4][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[5][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[6][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[7][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope Weight[8][31:0]
+addSignal -expanded -h 15 /top_tb/top_1/controller_1/PE_data_input[0:8]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[1][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[2][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[3][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[4][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[5][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[6][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[7][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope PE_data_input[8][31:0]
+addSignal -expanded -h 15 /top_tb/top_1/controller_1/u_PE[0]/PE_i/psum_after_mul[0:8]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[1][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[2][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[3][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[4][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[5][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[6][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[7][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_mul[8][31:0]
+addSignal -expanded -h 15 -2COMP -UDEC -holdScope psum_befor_add[0:8]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[1][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[2][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[3][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[4][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[5][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[6][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[7][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_befor_add[8][31:0]
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/cur_channel[9:0]
+addSignal -h 15 -UNSIGNED -UDEC /top_tb/top_1/controller_1/cur_row[5:0]
+addSignal -h 15 -2COMP -UDEC /top_tb/top_1/controller_1/u_PE[0]/PE_i/Pre_psum[31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope reg_pre_psum[31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope pre_psum_befor_add[31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope psum_after_add[31:0]
+addSignal -h 15 /top_tb/top_1/controller_1/output_SRAM_AA[0][11:0]
+addSignal -h 15 -2COMP -UDEC -holdScope output_SRAM_DI[0][31:0]
+addSignal -h 15 /top_tb/top_1/u_output_SRAM[0]/output_SRAM_i/WENA
+addSignal -h 15 -holdScope CENA
+addSignal -h 15 /top_tb/top_1/controller_1/output_SRAM_CEN
+addSignal -h 15 -holdScope tile_done
+addSignal -h 15 -UNSIGNED -UDEC -holdScope cur_col[5:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope cur_row[5:0]
+addSignal -h 15 -holdScope next_col[5:0]
+addSignal -h 15 -holdScope next_row[5:0]
+addSignal -h 15 -holdScope col_end[5:0]
+addSignal -h 15 -holdScope row_end[5:0]
+addSignal -h 15 -holdScope output_SRAM_AB_prdict[11:0]
+addSignal -h 15 -holdScope output_SRAM_AB[0][11:0]
+addSignal -h 15 -2COMP -UDEC -holdScope output_SRAM_DO[0][31:0]
+addSignal -h 15 -holdScope output_SRAM_OEN
+addSignal -h 15 -holdScope mem_data_addr[0][11:0]
+addSignal -h 15 -holdScope PE_psum_addr[0][11:0]
+addSignal -h 15 -holdScope filter_times[5:0]
+addSignal -h 15 -holdScope filter_times_now[5:0]
+addSignal -h 15 -holdScope weight_SRAM_A[0:31]
+addSignal -h 15 -holdScope controller_cur_channel[9:0]
+addSignal -h 15 /top_tb/top_1/transfer_controller_1/cur_channel[9:0]
+addSignal -h 15 -holdScope row_index[9:0]
+addGroup "DMA"
+addSignal -h 15 /top_tb/top_1/DMA_1/cur_state[3:0]
+addSignal -h 15 -holdScope cur_state[3:0]
+addSignal -h 15 -holdScope DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -h 15 -holdScope Output_SRAM_ADDR_start[17:0]
+addSignal -h 15 -holdScope Output_SRAM_ADDR_end[17:0]
+addSignal -h 15 -holdScope BUF_ADDR_start[6:0]
+addSignal -h 15 -holdScope output_SRAM_CEN_DMA
+addSignal -h 15 -holdScope output_SRAM_OEN_DMA
+addSignal -h 15 -holdScope cur_addr[17:0]
+addSignal -expanded -h 15 -holdScope output_SRAM_AB_DMA[0:31]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[0][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[1][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[2][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[29][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[30][11:0]
+addSignal -h 15 -holdScope output_SRAM_AB_DMA[31][11:0]
+addSignal -expanded -h 15 -holdScope output_SRAM_DO_DMA[0:31]
+addSignal -2COMP -UDEC -HIDDEN -holdScope output_SRAM_DO_DMA[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope output_SRAM_DO_DMA[0][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[1][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[2][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[3][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[13][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[14][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[15][31:0]
+addSignal -h 15 -holdScope output_SRAM_DO_DMA[16][31:0]
+addSignal -h 15 /top_tb/top_1/u_output_SRAM[0]/output_SRAM_i/CENA
+addSignal -h 15 -holdScope OENB
+addSignal -h 15 -UNSIGNED -HEX -holdScope AB[11:0]
+addSignal -h 15 /top_tb/top_1/mux_output_sram_read_1/output_sram_read_select
+addSignal -h 15 /top_tb/top_1/DMA_1/DRAM_addr[31:0]
+addSignal -h 15 -holdScope DRAM_D[31:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope DRAM_A[11:0]
+addSignal -h 15 -holdScope DRAM_Q[31:0]
+addSignal -h 15 -holdScope DRAM_RASn
+addSignal -h 15 -holdScope DRAM_CASn
+addSignal -h 15 -2COMP -UDEC /top_tb/top_1/transfer_controller_1/cur_filter[15:0]
+addSignal -h 15 -holdScope kernel_num[9:0]
+addGroup "DRAM" -e FALSE
+addGroup "DMA DRAM->INPUT SRAM" -e FALSE
+addSignal -h 15 /top_tb/top_1/DMA_1/DRAM_ADDR_start[31:0]
+addSignal -h 15 -holdScope DRAM_ADDR_end[31:0]
+addSignal -expanded -h 15 -holdScope input_buffer_A[0:1]
+addSignal -h 15 -holdScope input_buffer_A[0][6:0]
+addSignal -h 15 -holdScope input_buffer_A[1][6:0]
+addSignal -expanded -h 15 -holdScope input_buffer_DI[0:1]
+addSignal -h 15 -holdScope input_buffer_DI[0][127:0]
+addSignal -h 15 -holdScope input_buffer_DI[1][127:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope DRAM_A[11:0]
+addSignal -h 15 -holdScope DRAM_RASn
+addSignal -h 15 -holdScope DRAM_CASn
+addSignal -h 15 -holdScope DRAM_Q[31:0]
+addSignal -expanded -h 15 -holdScope buffer[0:8]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[0][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[1][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[2][31:0]
+addSignal -h 15 -2COMP -UDEC -holdScope buffer[3][31:0]
+addSignal -h 15 -holdScope buffer[4][31:0]
+addSignal -h 15 -holdScope buffer[5][31:0]
+addSignal -h 15 -holdScope buffer[6][31:0]
+addSignal -h 15 -holdScope buffer[7][31:0]
+addSignal -h 15 -holdScope buffer[8][31:0]
+addSignal -expanded -h 15 -holdScope DRAM_data_flag[3:0]
+addSignal -h 15 -holdScope DRAM_data_flag[3]
+addSignal -h 15 -holdScope DRAM_data_flag[2]
+addSignal -h 15 -holdScope DRAM_data_flag[1]
+addSignal -h 15 -holdScope DRAM_data_flag[0]
+addSignal -h 15 -holdScope DRAM_data_count[3:0]
+addSignal -h 15 -holdScope DRAM_D[31:0]
+addSignal -h 15 -holdScope DRAM_WEn[3:0]
+addSignal -h 15 -holdScope cur_state[3:0]
+addGroup "PE -> 32"
+addSignal -h 15 /top_tb/top_1/u_weight_SRAM[15]/weight_SRAM_i/Data[0:127]
+addSignal -h 15 -holdScope D[287:0]
+addSignal -h 15 -holdScope OEN
+addSignal -h 15 -holdScope Q[287:0]
+addSignal -h 15 -holdScope WEN
+addSignal -expanded -h 15 /top_tb/top_1/controller_1/u_PE[15]/PE_i/Input[0:8]
+addSignal -h 15 -holdScope Input[0][31:0]
+addSignal -h 15 -holdScope Input[1][31:0]
+addSignal -h 15 -holdScope Input[2][31:0]
+addSignal -h 15 -holdScope Input[3][31:0]
+addSignal -h 15 -holdScope Input[4][31:0]
+addSignal -h 15 -holdScope Input[5][31:0]
+addSignal -h 15 -holdScope Input[6][31:0]
+addSignal -h 15 -holdScope Input[7][31:0]
+addSignal -h 15 -holdScope Input[8][31:0]
+addSignal -expanded -h 15 -holdScope Weight[0:8]
+addSignal -h 15 -holdScope Weight[0][31:0]
+addSignal -h 15 -holdScope Weight[1][31:0]
+addSignal -h 15 -holdScope Weight[2][31:0]
+addSignal -h 15 -holdScope Weight[3][31:0]
+addSignal -h 15 -holdScope Weight[4][31:0]
+addSignal -h 15 -holdScope Weight[5][31:0]
+addSignal -h 15 -holdScope Weight[6][31:0]
+addSignal -h 15 -holdScope Weight[7][31:0]
+addSignal -h 15 -holdScope Weight[8][31:0]
+addSignal -h 15 -UNSIGNED -UDEC /top_tb/top_1/controller_1/cur_col[5:0]
+addSignal -h 15 -UNSIGNED -UDEC -holdScope cur_row[5:0]
+addSignal -h 15 /top_tb/top_1/controller_1/u_PE[15]/PE_i/pre_psum_befor_add[31:0]
+addSignal -h 15 -holdScope psum_befor_add[0:8]
+addSignal -h 15 -holdScope psum_after_add[31:0]
+addSignal -expanded -h 15 /top_tb/top_1/u_weight_SRAM[15]/weight_SRAM_i/Data[0:127]
+addSignal -h 15 -holdScope Data[0][287:0]
+addSignal -h 15 -holdScope Data[1][287:0]
+addSignal -h 15 -holdScope Data[2][287:0]
+addSignal -h 15 -holdScope Data[3][287:0]
+addSignal -h 15 -holdScope Data[4][287:0]
+addGroup "G10"
+
+; getSignalForm Scope Hierarchy Status
+; active file of getSignalForm
+activeDirFile "" "/home/hsiao/on_chip_homework/build/top_tb.fsdb"
+
+GETSIGNALFORM_SCOPE_HIERARCHY_BEGIN
+getSignalForm close
+
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/DMA_1"
+"/top_tb/top_1/controller_1"
+"/top_tb/top_1/controller_1/u_PE[0]"
+"/top_tb/top_1/controller_1/u_PE[0]/PE_i"
+"/top_tb/top_1/controller_1/u_PE[15]"
+"/top_tb/top_1/controller_1/u_PE[31]"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1/u_input_SRAM[0]"
+"/top_tb/top_1/u_input_SRAM[7]"
+"/top_tb/top_1/u_input_SRAM[8]"
+"/top_tb/top_1/u_input_SRAM[9]"
+"/top_tb/top_1/u_input_SRAM[14]"
+"/top_tb/top_1/u_input_SRAM[15]"
+"/top_tb/top_1/u_output_SRAM[0]"
+"/top_tb/top_1/u_output_SRAM[0]/output_SRAM_i"
+"/top_tb/top_1/u_weight_SRAM[0]"
+"/top_tb/top_1/u_weight_SRAM[1]"
+"/top_tb/top_1/u_weight_SRAM[2]"
+"/top_tb/top_1/u_weight_SRAM[15]"
+"/top_tb/top_1/u_weight_SRAM[30]"
+"/top_tb/top_1/u_weight_SRAM[31]"
+
+SCOPE_LIST_BEGIN
+"/top_tb"
+"/top_tb/top_1"
+"/top_tb/top_1/transfer_controller_1"
+"/top_tb/top_1/controller_1"
+"/top_tb/top_1/DMA_1"
+"/top_tb/top_1/u_output_SRAM[0]"
+"/top_tb/top_1/u_output_SRAM[0]/output_SRAM_i"
+"/top_tb/top_1/mux_sram_1"
+"/top_tb/top_1/mux_buffer_1"
+"/top_tb/top_1/mux_output_sram_read_1"
+"/top_tb/top_1/u_output_SRAM[1]"
+"/top_tb/top_1/controller_1/u_PE[0]"
+"/top_tb/top_1/controller_1/u_PE[0]/PE_i"
+"/top_tb/top_1/u_weight_SRAM[0]"
+"/top_tb/top_1/u_weight_SRAM[0]/weight_SRAM_i"
+"/top_tb/top_1/DMA_1/Unnamed_$DMA_sv_233"
+"/top_tb/top_1/mux_weight_sram_1"
+"/top_tb/top_1/u_weight_SRAM[3]"
+"/top_tb/top_1/u_weight_SRAM[2]"
+"/top_tb/top_1/u_weight_SRAM[2]/weight_SRAM_i"
+"/top_tb/top_1/u_weight_SRAM[1]"
+"/top_tb/top_1/u_weight_SRAM[1]/weight_SRAM_i"
+"/top_tb/top_1/u_weight_SRAM[16]"
+"/top_tb/top_1/u_weight_SRAM[15]"
+"/top_tb/top_1/u_weight_SRAM[15]/weight_SRAM_i"
+"/top_tb/top_1/u_input_SRAM[0]"
+"/top_tb/top_1/u_input_SRAM[0]/input_SRAM_i"
+"/top_tb/top_1/u_input_SRAM[7]"
+"/top_tb/top_1/u_input_SRAM[7]/input_SRAM_i"
+"/top_tb/top_1/u_input_SRAM[8]"
+"/top_tb/top_1/u_input_SRAM[10]"
+"/top_tb/top_1/u_input_SRAM[9]"
+"/top_tb/top_1/u_input_SRAM[8]/input_SRAM_i"
+"/top_tb/top_1/u_input_SRAM[9]/input_SRAM_i"
+"/top_tb/top_1/u_input_SRAM[14]"
+"/top_tb/top_1/u_input_SRAM[15]"
+"/top_tb/top_1/u_input_SRAM[15]/input_SRAM_i"
+"/top_tb/top_1/u_input_SRAM[14]/input_SRAM_i"
+"/top_tb/top_1/buffer2sram_input_1"
+"/top_tb/top_1/DMA_1/Unnamed_$DMA_sv_228"
+"/top_tb/top_1/controller_1/u_PE[31]"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i/Unnamed_$PE_sv_126"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i/Unnamed_$PE_sv_131"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i/Unnamed_$PE_sv_140"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i/Unnamed_$PE_sv_145"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i/Unnamed_$PE_sv_179"
+"/top_tb/top_1/controller_1/u_PE[31]/PE_i/Unnamed_$PE_sv_184"
+"/top_tb/top_1/u_weight_SRAM[31]"
+"/top_tb/top_1/u_weight_SRAM[31]/weight_SRAM_i"
+"/top_tb/top_1/u_weight_SRAM[30]"
+"/top_tb/top_1/u_weight_SRAM[30]/weight_SRAM_i"
+"/top_tb/top_1/controller_1/u_PE[15]"
+"/top_tb/top_1/controller_1/u_PE[15]/PE_i"
+SCOPE_LIST_END
+
+GETSIGNALFORM_SCOPE_HIERARCHY_END
+
+
