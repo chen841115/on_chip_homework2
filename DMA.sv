@@ -94,12 +94,12 @@ module DMA(
 	logic	[31:0]	next_DRAM_addr;
 	logic	[6:0]	input_buf_A_predict;
 
-    logic   [31:0]  buffer[0:8];
+    logic   [31:0]  buffer	[0:24];
 	logic	row_change;
 	logic	read_end;
 	//DRAM -> weight 
 	logic	[3:0]	DRAM_data_flag;
-	logic	[3:0]	DRAM_data_count;	
+	logic	[7:0]	DRAM_data_count;	
 
 	assign	DRAM_CSn	=	1'b0;
 
@@ -236,8 +236,20 @@ module DMA(
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if(DRAM_data_count	==	4'd9)
-					weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7],buffer[8]};
+				if(kernel_size == 'd3)
+				begin
+					if(DRAM_data_count	==	'd9)
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7],buffer[8]};
+				end
+				else if(kernel_size == 'd5)
+				begin
+					if(DRAM_data_count	==	'd23)
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[2],buffer[7],buffer[12],buffer[17],buffer[22],buffer[3],buffer[8],buffer[13],buffer[18]};
+					else if(DRAM_data_count	==	'd24)
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[22],buffer[3],buffer[8],buffer[13],buffer[18],buffer[23],buffer[4],buffer[9],buffer[14]};
+					else if(DRAM_data_count	==	'd25)
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[18],buffer[23],buffer[4],buffer[9],buffer[14],buffer[19],buffer[24],32'b0,32'b0};
+				end
 			end
 		end
 		else
@@ -284,22 +296,45 @@ module DMA(
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if(DRAM_data_count	==	4'd9)
+				if(kernel_size == 'd3)
 				begin
-					integer	i;
-					for(i=0;i<32;i++)
+					if(DRAM_data_count	==	4'd9)
 					begin
-						if(i == WEIGHT_SRAM_ADDR_start[11:7])
-							weight_SRAM_WEN[i]	<=	'b0;
-						else
+						integer	i;
+						for(i=0;i<32;i++)
+						begin
+							if(i == WEIGHT_SRAM_ADDR_start[11:7])
+								weight_SRAM_WEN[i]	<=	'b0;
+							else
+								weight_SRAM_WEN[i]	<=	'b1;
+						end
+					end
+					else
+					begin
+						integer	i;
+						for(i=0;i<32;i++)
 							weight_SRAM_WEN[i]	<=	'b1;
 					end
 				end
-				else
+				else if(kernel_size == 'd5)
 				begin
-					integer	i;
-					for(i=0;i<32;i++)
-						weight_SRAM_WEN[i]	<=	'b1;
+					if(DRAM_data_count=='d23 || DRAM_data_count=='d24||DRAM_data_count=='d25)
+					begin
+						integer	i;
+						for(i=0;i<32;i++)
+						begin
+							if(i == WEIGHT_SRAM_ADDR_start[11:7])
+								weight_SRAM_WEN[i]	<=	'b0;
+							else
+								weight_SRAM_WEN[i]	<=	'b1;
+						end
+					end
+					else
+					begin
+						integer	i;
+						for(i=0;i<32;i++)
+							weight_SRAM_WEN[i]	<=	'b1;
+					end
 				end
 			end
 			else
@@ -327,8 +362,20 @@ module DMA(
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if(DRAM_data_count	==	4'd9)
-					weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+				if(kernel_size == 'd3)
+				begin
+					if(DRAM_data_count	==	4'd9)
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+				end
+				else if(kernel_size == 'd5)
+				begin
+					if(DRAM_data_count	==	'd23)
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+					else if(DRAM_data_count	==	'd24)
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+					else if(DRAM_data_count	==	'd25)
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+				end
 			end
 			else
 			begin
@@ -407,17 +454,17 @@ module DMA(
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
-			DRAM_data_count	<=	4'd0;
+			DRAM_data_count	<=	'd0;
 		else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if(DRAM_data_count	==	4'd4)
+				if(DRAM_data_count	==	'd4)
 				begin
 					if(DRAM_data_flag[3] == 1'b1)
-						DRAM_data_count	<=	4'd1;
+						DRAM_data_count	<=	'd1;
 					else
-						DRAM_data_count	<=	4'd0;
+						DRAM_data_count	<=	'd0;
 				end
 				else
 				begin
@@ -426,27 +473,45 @@ module DMA(
 				end
 			end
 			else if(cur_state == 4'b0000)
-				DRAM_data_count	<=	4'd0;
+				DRAM_data_count	<=	'd0;
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if(DRAM_data_count	==	4'd9)
+				if(kernel_size == 'd3)
 				begin
-					if(DRAM_data_flag[3] == 1'b1)
-						DRAM_data_count	<=	4'd1;
+					if(DRAM_data_count	==	'd9)
+					begin
+						if(DRAM_data_flag[3] == 1'b1)
+							DRAM_data_count	<=	4'd1;
+						else
+							DRAM_data_count	<=	4'd0;
+					end
 					else
-						DRAM_data_count	<=	4'd0;
+					begin
+						if(DRAM_data_flag[3] == 1'b1)
+							DRAM_data_count	<=	DRAM_data_count + 1'b1;
+					end
 				end
-				else
+				else if(kernel_size == 'd5)
 				begin
-					if(DRAM_data_flag[3] == 1'b1)
-						DRAM_data_count	<=	DRAM_data_count + 1'b1;
+					if(DRAM_data_count	==	'd25)
+					begin
+						if(DRAM_data_flag[3] == 1'b1)
+							DRAM_data_count	<=	'd1;
+						else
+							DRAM_data_count	<=	'd0;
+					end
+					else
+					begin
+						if(DRAM_data_flag[3] == 1'b1)
+							DRAM_data_count	<=	DRAM_data_count + 1'b1;
+					end
 				end
 			end
 			else if(cur_state == 4'b0000)
-				DRAM_data_count	<=	4'd0;
+				DRAM_data_count	<=	'd0;
 		end
 	end
 
@@ -472,7 +537,7 @@ module DMA(
 		if(rst)
 		begin
 			integer	i;
-			for(i=0;i<9;i++)
+			for(i=0;i<25;i++)
 			begin
 				buffer[i]	<=	32'd0;
 			end
@@ -520,6 +585,68 @@ module DMA(
 					buffer[6]	<=	32'd0;
 					buffer[7]	<=	32'd0;
 					buffer[8]	<=	32'd0;
+				end
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(cur_state == 4'b0010||cur_state == 4'b0011)
+				begin
+					if(DRAM_data_flag[3] == 1'b1)
+					begin
+						buffer[0]	<=	buffer[1];
+						buffer[1]	<=	buffer[2];
+						buffer[2]	<=	buffer[3];
+						buffer[3]	<=	buffer[4];
+						buffer[4]	<=	buffer[5];
+						buffer[5]	<=	buffer[6];
+						buffer[6]	<=	buffer[7];
+						buffer[7]	<=	buffer[8];
+						buffer[8]	<=	buffer[9];
+						buffer[9]	<=	buffer[10];
+						buffer[10]	<=	buffer[11];
+						buffer[11]	<=	buffer[12];
+						buffer[12]	<=	buffer[13];
+						buffer[13]	<=	buffer[14];
+						buffer[14]	<=	buffer[15];
+						buffer[15]	<=	buffer[16];
+						buffer[16]	<=	buffer[17];
+						buffer[17]	<=	buffer[18];
+						buffer[18]	<=	buffer[19];
+						buffer[19]	<=	buffer[20];
+						buffer[20]	<=	buffer[21];
+						buffer[21]	<=	buffer[22];
+						buffer[22]	<=	buffer[23];
+						buffer[23]	<=	buffer[24];
+						buffer[24]	<=	DRAM_Q;
+					end
+				end
+				else if(cur_state == 4'b0000)
+				begin
+					buffer[0]	<=	32'd0;
+					buffer[1]	<=	32'd0;
+					buffer[2]	<=	32'd0;
+					buffer[3]	<=	32'd0;
+					buffer[4]	<=	32'd0;
+					buffer[5]	<=	32'd0;
+					buffer[6]	<=	32'd0;
+					buffer[7]	<=	32'd0;
+					buffer[8]	<=	32'd0;
+					buffer[9]	<=	32'd0;
+					buffer[10]	<=	32'd0;
+					buffer[11]	<=	32'd0;
+					buffer[12]	<=	32'd0;
+					buffer[13]	<=	32'd0;
+					buffer[14]	<=	32'd0;
+					buffer[15]	<=	32'd0;
+					buffer[16]	<=	32'd0;
+					buffer[17]	<=	32'd0;
+					buffer[18]	<=	32'd0;
+					buffer[19]	<=	32'd0;
+					buffer[20]	<=	32'd0;
+					buffer[21]	<=	32'd0;
+					buffer[22]	<=	32'd0;
+					buffer[23]	<=	32'd0;
+					buffer[24]	<=	32'd0;
 				end
 			end
 		end
@@ -771,15 +898,27 @@ module DMA(
 		begin
 			if(cur_state == 4'b0001 || pre_state == 4'b0000)
 				cur_addr[6:0]	<=	7'b0;
-			else if(DRAM_data_count	==	4'd4)
+			else if(DRAM_data_count	==	'd4)
 				cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0001 || pre_state == 4'b0000)
 				cur_addr[6:0]	<=	7'b0;
-			else if(DRAM_data_count	==	4'd9)
-				cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+			else if(kernel_size == 'd3)
+			begin
+				if(DRAM_data_count	==	'd9)
+					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(DRAM_data_count	==	'd23)
+					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				else if(DRAM_data_count	==	'd24)
+					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				else if(DRAM_data_count	==	'd25)
+					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+			end
 		end
 		else if(DMA_type == 1'b1)
 		begin

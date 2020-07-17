@@ -83,27 +83,27 @@ module top_tb;
         // channel = 3;
 		// map_size = 416;
 		// ouput_map_size = 414;
-		kernel_size = 3;
+		kernel_size = 5;
         stride = 1;
         kernel_num = 64;
-        channel = 256;
-		map_size = 52;
-		ouput_map_size = 50;
+        channel = 32;
+		map_size = 104;
+		ouput_map_size = 100;
 		run = 0;
 
 
         #(`CYCLE*4) rst = 0;
 		run = 1; 
-		prog_path ="/home/hsiao/on_chip_homework/DRAM_INPUT/";
+		prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/";
 
 		// $readmemh({prog_path, "/test0.hex"}, DRAM_1.Memory_byte0);
         // $readmemh({prog_path, "/test1.hex"}, DRAM_1.Memory_byte1);
         // $readmemh({prog_path, "/test2.hex"}, DRAM_1.Memory_byte2);
         // $readmemh({prog_path, "/test3.hex"}, DRAM_1.Memory_byte3);
-		$readmemh({prog_path, "model1/layer6/input0.hex"}, DRAM_1.Memory_byte0);
-        $readmemh({prog_path, "model1/layer6/input1.hex"}, DRAM_1.Memory_byte1);
-        $readmemh({prog_path, "model1/layer6/input2.hex"}, DRAM_1.Memory_byte2);
-        $readmemh({prog_path, "model1/layer6/input3.hex"}, DRAM_1.Memory_byte3);
+		$readmemh({prog_path, "model2/layer2/input0.hex"}, DRAM_1.Memory_byte0);
+        $readmemh({prog_path, "model2/layer2/input1.hex"}, DRAM_1.Memory_byte1);
+        $readmemh({prog_path, "model2/layer2/input2.hex"}, DRAM_1.Memory_byte2);
+        $readmemh({prog_path, "model2/layer2/input3.hex"}, DRAM_1.Memory_byte3);
         #(`CYCLE*10) run = 0;
         //#(`CYCLE*5000) $finish;
     end
@@ -118,12 +118,12 @@ module top_tb;
 	initial begin
         //#(`CYCLE*10000000)
 		//#(`CYCLE*1000000)
-		#(`CYCLE*5000000)
+		#(`CYCLE*3000000)
 		//#(`CYCLE*900000)
 		//h = 50 * 50 * 128;
-		h = 50*50*32;
+		h = 100*100;//*50*32;
 		num = 0;
-		gf = $fopen({prog_path, "model1/layer6/output.txt"}, "r");
+		gf = $fopen({prog_path, "model2/layer2/output.txt"}, "r");
         while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);
@@ -210,7 +210,7 @@ module top_tb;
 
     initial
     begin
-		prog_path ="/home/hsiao/on_chip_homework/DRAM_INPUT/";
+		prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/";
 		$readmemh({prog_path, "/output.hex"}, top_1.u_output_SRAM[0].output_SRAM_i.Data);
 		$readmemh({prog_path, "/output.hex"}, top_1.u_output_SRAM[1].output_SRAM_i.Data);
 		$readmemh({prog_path, "/output.hex"}, top_1.u_output_SRAM[2].output_SRAM_i.Data);

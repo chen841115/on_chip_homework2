@@ -9,7 +9,7 @@ module input_SRAM (
     OEN
 );
 
-    parameter  Words = 14;
+    parameter  Words = 16;
     parameter  Bits = 128;            
     parameter  AddressSize = 7;
 

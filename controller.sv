@@ -44,7 +44,7 @@ module controller(
     input   clk;
     input	rst;
     input   controller_run;
-	input	input_SRAM_ready	[0:51];
+	input	input_SRAM_ready	[0:63];
 	input	[3:0]	kernel_size;
 	input	[9:0]	kernel_num;
 	input	[5:0]	row_end;
@@ -63,10 +63,10 @@ module controller(
 	output	logic	output_SRAM_WEN				[0:31];
 	//input_SRAM
 	//logic	[127:0]	input_SRAM_DI		[0:7];
-	input	logic	[127:0]	input_SRAM_DO		[0:51];
-	output	logic	[6:0]	input_SRAM_A		[0:51];
-	output	logic	input_SRAM_CEN	[0:51];
-	output	logic	input_SRAM_OEN	[0:51];
+	input	logic	[127:0]	input_SRAM_DO		[0:63];
+	output	logic	[6:0]	input_SRAM_A		[0:63];
+	output	logic	input_SRAM_CEN	[0:63];
+	output	logic	input_SRAM_OEN	[0:63];
 	//output	logic	input_SRAM_WEN	[0:7]; 
 	//weight_SRAM
 	//logic	[287:0]	weight_SRAM_DI		[0:31];
@@ -113,20 +113,26 @@ module controller(
 
 
 	//input_SRAM_A_predict
-	logic	[6:0]	input_SRAM_A_predict	[0:2];
+	logic	[6:0]	input_SRAM_A_predict	[0:10];
 	logic	[11:0]	output_SRAM_AB_prdict;
 	logic	[3:0]	predict_tmp1;
 	logic	[3:0]	predict_tmp2;
 	logic	[3:0]	predict_tmp3;
 	//input_select
-	logic	[5:0]	input_select	[0:2];
-	logic	[5:0]	mem_access_input_select	[0:2];
-	logic	[5:0]	mem_data_input_select	[0:2];
+	logic	[5:0]	input_select	[0:6];
+	logic	[5:0]	mem_access_input_select	[0:6];
+	logic	[5:0]	mem_data_input_select	[0:6];
+	//input_SRAM buffer
+	logic	[31:0]	data_buffer	[0:34];
+	//oversize kernel
+	logic	[4:0]	oversize_count;
+	logic	[1:0]	oversize_first,mem_access_oversize_first,mem_data_oversize_first;
+	logic	oversize_part_done;
 
 	//reg store input feature
 
 	logic	[2:0]	cur_state,move_state,mem_access_state;
-	logic	[2:0]	next_state;
+	logic	[2:0]	next_state,pre_state;
 	parameter IDLE = 3'b000;
 	parameter S1   = 3'b001;
 	parameter S2   = 3'b010;
@@ -140,9 +146,12 @@ module controller(
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
-			cur_state <= IDLE;
+			cur_state	<=	IDLE;
 		else
-			cur_state <= next_state;
+		begin
+			cur_state	<=	next_state;
+			pre_state	<=	cur_state;
+		end
 	end
 	
 	always_comb
@@ -154,25 +163,101 @@ module controller(
 			case(cur_state)
 				IDLE: 	
 				begin
-					if(controller_run) 	next_state = S1;
-					else			next_state = IDLE;
+					if(controller_run)
+					begin
+						if(kernel_size == 'd3)
+							next_state = S1;
+						else
+							next_state = S3;
+					end
+					else			
+						next_state = IDLE;
 				end
-				S1	:
+				S1:
 				begin
-					if(tile_done)	next_state = S2;
-					else			next_state = S1;
+					if(tile_done || oversize_part_done)	
+						next_state = S2;
+					else			
+						next_state = S1;
 				end
-				S2	:
+				S2:
 				begin
-					if(~controller_run)	next_state = IDLE;
-					else			next_state = S2;
+					if(~controller_run)	
+					begin
+						if((kernel_size == 'd3))
+							next_state = IDLE;
+						else
+							next_state = S3;
+					end
+					else
+						next_state = S2;
 				end
-				S3	:	next_state = S3;
-				S4	:	next_state = S4;
-				S5	:	next_state = S5;
-				S6	:	next_state = S6;
-				S7	:	next_state = S7;
+				S3:
+				begin
+					if(kernel_size == 'd5 && oversize_count < 'b10)
+						next_state = S1;
+					else
+						next_state = IDLE;
+				end
+				S4:	next_state = S4;
+				S5:	next_state = S5;
+				S6:	next_state = S6;
+				S7:	next_state = S7;
 			endcase
+		end
+	end
+
+	//oversize kernel 
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			oversize_count	<=	'b0;
+		else if(cur_state == IDLE)
+			oversize_count	<=	'b0;
+		else if(cur_state == S3)
+		begin
+			if(kernel_size == 'd5)
+			begin
+				if(pre_state == IDLE)
+					oversize_count	<=	'b0;
+				else if(oversize_count >= 'b10)
+					oversize_count	<=	oversize_count;
+				else 
+					oversize_count	<=	oversize_count + 'b1;
+			end
+		end
+	end
+	//oversize_first
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(kernel_size == 'd5)
+		begin
+			if(cur_state == IDLE)
+				oversize_first	<=	'b0;
+			else if(cur_state == S1)
+			begin
+				if(next_col == 6'b0 && cur_col != 6'b1)
+					oversize_first	<=	oversize_first + 'b1;
+				else
+					oversize_first	<=	'b0;
+			end
+			else
+				oversize_first	<=	'b0;
+		end
+		else
+			oversize_first	<=	1'b0;			
+	end
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(kernel_size == 'd5)
+		begin
+			mem_access_oversize_first	<=	oversize_first;
+			mem_data_oversize_first	<=	mem_access_oversize_first;
+		end
+		else
+		begin
+			mem_access_oversize_first	<=	'b0;
+			mem_data_oversize_first	<=	'b0;
 		end
 	end
 	
@@ -198,30 +283,76 @@ module controller(
 
 	always_comb
 	begin
-		if(cur_col >= (col_end - kernel_size + 'b1))
+		if(kernel_size == 'd3)
 		begin
-			if(cur_row >= (row_end - kernel_size + 'b1))
+			if(stride == 'd1)
 			begin
-				next_col = 5'd0;
-				next_row = 5'd0;
-			end
-			else
-			begin
-				next_col = 5'd0;
-				next_row = cur_row + 5'd1;
+				if(cur_col >= (col_end - kernel_size + 'b1))
+				begin
+					if(cur_row >= (row_end - kernel_size + 'b1))
+					begin
+						next_col = 5'd0;
+						next_row = 5'd0;
+					end
+					else
+					begin
+						next_col = 5'd0;
+						next_row = cur_row + 5'd1;
+					end
+				end
+				else
+				begin
+					if(cur_state == S1)
+					begin
+						next_col = cur_col + 1'b1;
+						next_row = cur_row;
+					end
+					else
+					begin
+						next_col = 5'd0;
+						next_row = 5'd0;
+					end
+				end
 			end
 		end
-		else
+		else if(kernel_size == 'd5)
 		begin
-			if(cur_state == S1)
+			if(stride == 'd1)
 			begin
-				next_col = cur_col + stride;
-				next_row = cur_row;
-			end
-			else
-			begin
-				next_col = 5'd0;
-				next_row = 5'd0;
+				if(cur_col >= (col_end - kernel_size + 'b1))
+				begin
+					if(cur_row >= (row_end - kernel_size + 'b1))
+					begin
+						next_col = 5'd0;
+						next_row = 5'd0;
+					end
+					else
+					begin
+						next_col = 5'd0;
+						next_row = cur_row + 5'd1;
+					end
+				end
+				else
+				begin
+					if(cur_state == S1)
+					begin
+						if(cur_col == 6'b0 && oversize_count == 'b10)
+						begin
+							if(oversize_first == 'b10)
+								next_col = cur_col + 1'b1;
+							else
+								next_col = cur_col;
+						end
+						else
+							next_col = cur_col + 1'b1;
+						next_row = cur_row;
+					end
+					else
+					begin
+						next_col = 5'd0;
+						next_row = 5'd0;
+					end
+				end
 			end
 		end
 	end
@@ -259,32 +390,176 @@ module controller(
 		end
 		else
 		begin
-			case (next_col[1:0])
-				2'b00	:
+			if(kernel_size == 'd3)
+			begin
+				if(stride == 'd1)
 				begin
-					input_SRAM_A_predict[0] <= 	next_col;
-					input_SRAM_A_predict[1] <= 	next_col;
-					input_SRAM_A_predict[2] <= 	next_col;
+					case (next_col[1:0])
+						2'b00	:
+						begin
+							input_SRAM_A_predict[0] <= 	next_col;
+							input_SRAM_A_predict[1] <= 	next_col;
+							input_SRAM_A_predict[2] <= 	next_col;
+						end
+						2'b01	:
+						begin
+							input_SRAM_A_predict[0] <= 	next_col;
+							input_SRAM_A_predict[1] <= 	next_col;
+							input_SRAM_A_predict[2] <= 	next_col;
+						end
+						2'b10	:
+						begin
+							input_SRAM_A_predict[0] <= 	next_col + 2;
+							input_SRAM_A_predict[1] <= 	next_col + 2;
+							input_SRAM_A_predict[2] <= 	next_col + 2;
+						end
+						2'b11	:
+						begin
+							input_SRAM_A_predict[0] <= 	next_col + 1;
+							input_SRAM_A_predict[1] <= 	next_col + 1;
+							input_SRAM_A_predict[2] <= 	next_col + 1;
+						end
+					endcase
 				end
-				2'b01	:
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(stride == 'd1)
 				begin
-					input_SRAM_A_predict[0] <= 	next_col;
-					input_SRAM_A_predict[1] <= 	next_col;
-					input_SRAM_A_predict[2] <= 	next_col;
+					case (next_col[1:0])
+						2'b00	:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col;
+								input_SRAM_A_predict[1] <= 	next_col;
+								input_SRAM_A_predict[2] <= 	next_col;
+								input_SRAM_A_predict[3] <= 	next_col;
+								input_SRAM_A_predict[4] <= 	next_col;
+							end
+							else if(oversize_count == 'b1)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col;
+								input_SRAM_A_predict[1] <= 	next_col;
+								input_SRAM_A_predict[2] <= 	next_col;
+								input_SRAM_A_predict[3] <= 	next_col;
+								input_SRAM_A_predict[4] <= 	next_col;
+							end
+							else if(oversize_count == 'b10)
+							begin
+								if(next_col == 6'b0)
+								begin
+									if(oversize_first == 1'b0)
+									begin
+										input_SRAM_A_predict[0] <= 	next_col;
+										input_SRAM_A_predict[1] <= 	next_col;
+										input_SRAM_A_predict[2] <= 	next_col;
+										input_SRAM_A_predict[3] <= 	next_col;
+										input_SRAM_A_predict[4] <= 	next_col;
+									end
+									else
+									begin
+										input_SRAM_A_predict[0] <= 	next_col + 'b100;
+										input_SRAM_A_predict[1] <= 	next_col + 'b100;
+										input_SRAM_A_predict[2] <= 	next_col + 'b100;
+										input_SRAM_A_predict[3] <= 	next_col + 'b100;
+										input_SRAM_A_predict[4] <= 	next_col + 'b100;
+									end
+								end
+								else
+								begin
+									input_SRAM_A_predict[0] <= 	next_col + 'b100;
+									input_SRAM_A_predict[1] <= 	next_col + 'b100;
+									input_SRAM_A_predict[2] <= 	next_col + 'b100;
+									input_SRAM_A_predict[3] <= 	next_col + 'b100;
+									input_SRAM_A_predict[4] <= 	next_col + 'b100;
+								end
+							end
+						end
+						2'b01	:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col;
+								input_SRAM_A_predict[1] <= 	next_col;
+								input_SRAM_A_predict[2] <= 	next_col;
+								input_SRAM_A_predict[3] <= 	next_col;
+								input_SRAM_A_predict[4] <= 	next_col;
+							end
+							else if(oversize_count == 'b1)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd3;
+								input_SRAM_A_predict[1] <= 	next_col + 'd3;
+								input_SRAM_A_predict[2] <= 	next_col + 'd3;
+								input_SRAM_A_predict[3] <= 	next_col + 'd3;
+								input_SRAM_A_predict[4] <= 	next_col + 'd3;
+							end
+							else if(oversize_count == 'b10)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd3;
+								input_SRAM_A_predict[1] <= 	next_col + 'd3;
+								input_SRAM_A_predict[2] <= 	next_col + 'd3;
+								input_SRAM_A_predict[3] <= 	next_col + 'd3;
+								input_SRAM_A_predict[4] <= 	next_col + 'd3;
+							end
+						end
+						2'b10	:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col;
+								input_SRAM_A_predict[1] <= 	next_col;
+								input_SRAM_A_predict[2] <= 	next_col;
+								input_SRAM_A_predict[3] <= 	next_col;
+								input_SRAM_A_predict[4] <= 	next_col;
+							end
+							else if(oversize_count == 'b1)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd2;
+								input_SRAM_A_predict[1] <= 	next_col + 'd2;
+								input_SRAM_A_predict[2] <= 	next_col + 'd2;
+								input_SRAM_A_predict[3] <= 	next_col + 'd2;
+								input_SRAM_A_predict[4] <= 	next_col + 'd2;
+							end
+							else if(oversize_count == 'b10)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd2;
+								input_SRAM_A_predict[1] <= 	next_col + 'd2;
+								input_SRAM_A_predict[2] <= 	next_col + 'd2;
+								input_SRAM_A_predict[3] <= 	next_col + 'd2;
+								input_SRAM_A_predict[4] <= 	next_col + 'd2;
+							end
+						end
+						2'b11	:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd1;
+								input_SRAM_A_predict[1] <= 	next_col + 'd1;
+								input_SRAM_A_predict[2] <= 	next_col + 'd1;
+								input_SRAM_A_predict[3] <= 	next_col + 'd1;
+								input_SRAM_A_predict[4] <= 	next_col + 'd1;
+							end
+							else if(oversize_count == 'b1)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd1;
+								input_SRAM_A_predict[1] <= 	next_col + 'd1;
+								input_SRAM_A_predict[2] <= 	next_col + 'd1;
+								input_SRAM_A_predict[3] <= 	next_col + 'd1;
+								input_SRAM_A_predict[4] <= 	next_col + 'd1;
+							end
+							else if(oversize_count == 'b10)
+							begin
+								input_SRAM_A_predict[0] <= 	next_col + 'd1;
+								input_SRAM_A_predict[1] <= 	next_col + 'd1;
+								input_SRAM_A_predict[2] <= 	next_col + 'd1;
+								input_SRAM_A_predict[3] <= 	next_col + 'd1;
+								input_SRAM_A_predict[4] <= 	next_col + 'd1;
+							end
+						end
+					endcase
 				end
-				2'b10	:
-				begin
-					input_SRAM_A_predict[0] <= 	next_col + 2;
-					input_SRAM_A_predict[1] <= 	next_col + 2;
-					input_SRAM_A_predict[2] <= 	next_col + 2;
-				end
-				2'b11	:
-				begin
-					input_SRAM_A_predict[0] <= 	next_col + 1;
-					input_SRAM_A_predict[1] <= 	next_col + 1;
-					input_SRAM_A_predict[2] <= 	next_col + 1;
-				end
-			endcase
+			end
 		end
 	end
 
@@ -297,12 +572,30 @@ module controller(
 		input_select[0]	<=	next_row;
 		input_select[1]	<=	next_row + 'd1;
 		input_select[2]	<=	next_row + 'd2;
+		if(kernel_size == 'd5)
+		begin
+			input_select[3]	<=	next_row + 'd3;
+			input_select[4]	<=	next_row + 'd4;
+		end
+		else if(kernel_size == 'd7)
+		begin
+			input_select[5]	<=	next_row + 'd5;
+			input_select[6]	<=	next_row + 'd6;
+		end
 		mem_access_input_select[0]	<=	input_select[0];
 		mem_access_input_select[1]	<=	input_select[1];
 		mem_access_input_select[2]	<=	input_select[2];
+		mem_access_input_select[3]	<=	input_select[3];
+		mem_access_input_select[4]	<=	input_select[4];
+		mem_access_input_select[5]	<=	input_select[5];
+		mem_access_input_select[6]	<=	input_select[6];
 		mem_data_input_select[0]	<=	mem_access_input_select[0];
 		mem_data_input_select[1]	<=	mem_access_input_select[1];
 		mem_data_input_select[2]	<=	mem_access_input_select[2];
+		mem_data_input_select[3]	<=	mem_access_input_select[3];
+		mem_data_input_select[4]	<=	mem_access_input_select[4];
+		mem_data_input_select[5]	<=	mem_access_input_select[5];
+		mem_data_input_select[6]	<=	mem_access_input_select[6];
 	end
 
 	//input_SRAM_A
@@ -313,7 +606,7 @@ module controller(
 			foreach(input_SRAM_A[i])
 				input_SRAM_A[i]   <=	7'd0;
 		end
-		else if(kernel_size == 3)
+		else if(kernel_size == 'd3)
 		begin
 			if(cur_state == S1)
 			begin
@@ -334,7 +627,33 @@ module controller(
 				foreach(input_SRAM_A[i])
 					input_SRAM_A[i]	<=	7'b0;
 			end
-		end 
+		end
+		else if(kernel_size == 'd5)
+		begin
+			if(cur_state == S1)
+			begin
+				foreach(input_SRAM_A[i])
+				begin
+					if(i==input_select[0])
+						input_SRAM_A[input_select[0]] <=  input_SRAM_A_predict[0][6:2];
+					else if(i==input_select[1])
+						input_SRAM_A[input_select[1]] <=  input_SRAM_A_predict[1][6:2];
+					else if(i==input_select[2])
+						input_SRAM_A[input_select[2]] <=  input_SRAM_A_predict[2][6:2];
+					else if(i==input_select[3])
+						input_SRAM_A[input_select[3]] <=  input_SRAM_A_predict[3][6:2];
+					else if(i==input_select[4])
+						input_SRAM_A[input_select[4]] <=  input_SRAM_A_predict[4][6:2];
+					else
+						input_SRAM_A[i]	<=	7'b0;
+				end
+			end
+			else
+			begin
+				foreach(input_SRAM_A[i])
+					input_SRAM_A[i]	<=	7'b0;
+			end
+		end  
 	end
 
 	//input_SRAM control
@@ -349,13 +668,13 @@ module controller(
 			foreach(input_SRAM_CEN[i])
 				input_SRAM_CEN[i]   <=	1'd0;
 		end
-		else if(kernel_size == 3)
+		else if(kernel_size == 'd3)
 		begin
 			if(cur_state == S1)
 			begin
 				foreach(input_SRAM_OEN[i])
 				begin
-					if(i==input_select[0]||i==input_select[1]||i==input_select[2])
+					if((i==input_select[0]||i==input_select[1]||i==input_select[2])&&(cur_col==6'b0||cur_col[1:0]==2'b10))
 						input_SRAM_OEN[i]	<=	1'd0;
 					else
 						input_SRAM_OEN[i]	<=	1'd1;
@@ -366,12 +685,37 @@ module controller(
 				foreach(input_SRAM_OEN[i])
 					input_SRAM_OEN[i]	<=	1'd1;
 			end
-		end 
+		end
+		else if(kernel_size == 'd5)
+		begin
+			if(cur_state == S1)
+			begin
+				foreach(input_SRAM_OEN[i])
+				begin
+					if((i==input_select[0]||i==input_select[1]||i==input_select[2]||i==input_select[3]||i==input_select[4]))
+						input_SRAM_OEN[i]	<=	1'd0;
+					else
+						input_SRAM_OEN[i]	<=	1'd1;
+				end
+			end
+			else
+			begin
+				foreach(input_SRAM_OEN[i])
+					input_SRAM_OEN[i]	<=	1'd1;
+			end
+		end  
 	end
 
 	//ERROR 
 	//filter_times
-	assign filter_times = 	6'd1;
+	//assign filter_times = 	6'd1;
+	always_comb
+	begin
+		if(kernel_size == 'd3)
+			filter_times = 	6'd1;
+		else if(kernel_size == 'd5)
+			filter_times = 	6'd2;
+	end
 	always_ff  @(posedge clk, posedge rst)
 	begin
 		if(rst)
@@ -382,10 +726,20 @@ module controller(
 		begin
 			if(cur_state == S1 && tile_done == 1'b0)
 			begin
-				if(cur_col == 6'd0 && cur_row == 6'd0 )
-					filter_times_now <= filter_times_now + 1;
-				else
-					filter_times_now <= filter_times_now;
+				if(kernel_size == 'd3)
+				begin
+					if(cur_col == 6'd0 && cur_row == 6'd0 )
+						filter_times_now <= filter_times_now + 1;
+					else
+						filter_times_now <= filter_times_now;
+				end
+				else if(kernel_size == 'd5)
+				begin
+					if(cur_col == (col_end-'d4) && cur_row == (row_end-'d4))
+						filter_times_now <= filter_times_now + 1;
+					else
+						filter_times_now <= filter_times_now;
+				end
 			end
 			else
 				filter_times_now   <=	filter_times_now;
@@ -396,11 +750,29 @@ module controller(
 	always_ff  @(posedge clk, posedge rst)
 	begin
 		if(rst)
+		begin
+			oversize_part_done	<=	1'b0;
 			tile_done   <=	1'b0;
+		end
 		else if(cur_state == IDLE)
-			tile_done	<=	1'b0;
-		else if(filter_times_now > filter_times)
-			tile_done   <=	1'b1;
+		begin
+			oversize_part_done	<=	1'b0;
+			tile_done   <=	1'b0;
+		end
+		else if(kernel_size == 'd3)
+		begin
+			if(filter_times_now > filter_times)
+				tile_done   <=	1'b1;
+		end
+		else if(kernel_size == 'd5)
+		begin
+			if(cur_col == (col_end-'d4) && cur_row == (row_end-'d4))
+				oversize_part_done   <=	1'b1;
+			else 
+				oversize_part_done   <=	1'b0;
+			if(filter_times_now > filter_times && oversize_count == 'b10)
+				tile_done   <=	1'b1;
+		end
 		else 
 			tile_done	<=	tile_done;
 	end			
@@ -413,7 +785,7 @@ module controller(
 			foreach(weight_SRAM_A[i])
 				weight_SRAM_A[i]   <=	7'd0;
 		end
-		else if(kernel_size == 3)
+		else if(kernel_size == 'd3)
 		begin
 			if(cur_state == S1 && filter_times_now <= filter_times)
 			begin
@@ -425,7 +797,20 @@ module controller(
 				foreach(weight_SRAM_A[i])
 					weight_SRAM_A[i]	<=	7'd0;
 			end
-		end 
+		end
+		else if(kernel_size == 'd5)
+		begin
+			if(cur_state == S1 && filter_times_now <= filter_times)
+			begin
+				foreach(weight_SRAM_A[i])
+					weight_SRAM_A[i]	<=	(controller_cur_channel[6:0]*'d3) + oversize_count;
+			end
+			else
+			begin
+				foreach(weight_SRAM_A[i])
+					weight_SRAM_A[i]	<=	7'd0;
+			end
+		end  
 		else
 		begin
 			foreach(weight_SRAM_A[i])
@@ -445,9 +830,9 @@ module controller(
 			foreach(weight_SRAM_CEN[i])
 				weight_SRAM_CEN[i]   <=	1'd0;
 		end
-		if(kernel_size == 3)
+		else if(kernel_size == 'd3)
 		begin
-			if(cur_state == S1)
+			if(cur_state == S1 && pre_state == IDLE)
 			begin
 				foreach(weight_SRAM_OEN[i])
 					weight_SRAM_OEN[i]	<=	1'd0;
@@ -458,10 +843,30 @@ module controller(
 					weight_SRAM_OEN[i]	<=	1'd1;
 			end
 		end 
+		else if(kernel_size == 'd5)
+		begin
+			if(cur_state == S1 && pre_state == S3)
+			begin
+				foreach(weight_SRAM_OEN[i])
+					weight_SRAM_OEN[i]	<=	1'd0;
+			end
+			else
+			begin
+				foreach(weight_SRAM_OEN[i])
+					weight_SRAM_OEN[i]	<=	1'd1;
+			end
+		end
 	end
 
 	// may have some problem
-	assign output_SRAM_AB_prdict = (cur_row << 5) + (cur_row << 4) + (cur_row << 1) + cur_col;
+	assign output_SRAM_AB_prdict = (cur_row << 5) + (cur_row << 4) + (cur_row << 3) + (cur_row << 2) + (cur_row << 1) + cur_col;
+	// always_comb
+	// begin
+	// 	if(kernel_size == 'd3)
+	// 		output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
+	// 	else if(kernel_size == 'd5)
+	// 		output_SRAM_AB_prdict	=	cur_row	* 'd60 + cur_col;
+	// end
 	//output_SRAM_AB
 	always_ff  @(posedge clk, posedge rst)
 	begin
@@ -482,7 +887,20 @@ module controller(
 				foreach(output_SRAM_AB[i])
 					output_SRAM_AB[i]   <=	12'd0;
 			end
-		end 
+		end
+		else if(kernel_size == 5)
+		begin
+			if(cur_state == S1)
+			begin
+				foreach(output_SRAM_AB[i])
+					output_SRAM_AB[i]   <=	output_SRAM_AB_prdict;
+			end
+			else
+			begin
+				foreach(output_SRAM_AB[i])
+					output_SRAM_AB[i]   <=	12'd0;
+			end
+		end  
 	end
 	//output_SRAM_AA
 	always_ff  @(posedge clk, posedge rst)
@@ -498,7 +916,14 @@ module controller(
 				output_SRAM_AA[i]	<=	output_sram_addr[i];
 			foreach(output_SRAM_WEN[i])
 				output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
-		end 
+		end
+		else if(kernel_size == 5)
+		begin
+			foreach(output_SRAM_AA[i])
+				output_SRAM_AA[i]	<=	output_sram_addr[i];
+			foreach(output_SRAM_WEN[i])
+				output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
+		end  
 	end
 
 	//output_SRAM_DI
@@ -510,6 +935,11 @@ module controller(
 				output_SRAM_DI[i]	<=	32'b0;
 		end
 		else if(kernel_size == 3)
+		begin
+			foreach(output_SRAM_DI[i])
+				output_SRAM_DI[i]	<=	PE_data_psum_out[i];
+		end 
+		else if(kernel_size == 5)
 		begin
 			foreach(output_SRAM_DI[i])
 				output_SRAM_DI[i]	<=	PE_data_psum_out[i];
@@ -535,6 +965,17 @@ module controller(
 				output_SRAM_OEN	<=	1'd1;
 			end
 		end 
+		else if(kernel_size == 5)
+		begin
+			if(cur_state == S1)
+			begin
+				output_SRAM_OEN	<=	1'd0;
+			end
+			else
+			begin
+				output_SRAM_OEN	<=	1'd1;
+			end
+		end 
 	end
 	//output_SRAM_addr_write
 	always_ff  @(posedge clk, posedge rst)
@@ -544,7 +985,12 @@ module controller(
 		else if(kernel_size == 'd3)
 		begin
 			if(cur_state == S1)
-				output_SRAM_addr_write	<=	(cur_row * 'd50) + cur_col;
+				output_SRAM_addr_write	<=	(cur_row * 'd62) + cur_col;
+		end
+		else if(kernel_size == 'd5)
+		begin
+			if(cur_state == S1)
+				output_SRAM_addr_write	<=	(cur_row * 'd62) + cur_col;
 		end
 	end
 
@@ -581,20 +1027,493 @@ module controller(
 		end
 		else
 		begin
-			foreach(PE_data_weight[i])
+			if(kernel_size == 'd3)
 			begin
-				PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-				PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-				PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-				PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-				PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-				PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-				PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-				PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-				PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
-			end	
+				if(cur_state == S1 && mem_access_col == 'b1 && mem_access_row =='b0)
+				begin
+					foreach(PE_data_weight[i])
+					begin
+						PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
+						PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
+						PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
+						PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
+						PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
+						PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
+						PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
+						PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
+						PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+					end	
+				end
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(cur_state == S1)
+				begin
+					if(mem_access_col == 'b1 && mem_access_row =='b0 && oversize_count != 'b10)
+					begin
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
+							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
+							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
+							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
+							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
+							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
+							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
+							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
+							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+						end	
+					end
+					else if(cur_col == 'b0 && cur_row =='b0 && oversize_count == 'b10 && next_state != 'd2)
+					begin
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
+							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
+							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
+							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
+							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
+							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
+							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
+							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
+							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+						end	
+					end
+				end
+			end
+			
 		end
 	end
+
+
+	//data_buffer
+	always_ff  @(posedge clk, posedge rst)
+	begin
+		if(rst)
+		begin
+			foreach(data_buffer[i])
+				data_buffer[i]	<=	8'b0;
+		end
+		else
+		begin
+			if(kernel_size == 'd3)
+			begin
+				if(stride == 'd1)
+				begin
+					case(mem_data_col[1:0])
+						2'b00:
+						begin
+							if(mem_data_col == 6'b0)
+							begin
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+							end
+							else
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	data_buffer[2];
+								data_buffer[2]	<=	data_buffer[3];
+								data_buffer[3]	<=	data_buffer[4];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	data_buffer[7];
+								data_buffer[7]	<=	data_buffer[8];
+								data_buffer[8]	<=	data_buffer[9];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	data_buffer[12];
+								data_buffer[12]	<=	data_buffer[13];
+								data_buffer[13]	<=	data_buffer[14];
+							end
+						end
+						2'b01:
+						begin
+							data_buffer[0]	<=	data_buffer[1];
+							data_buffer[1]	<=	data_buffer[2];
+							data_buffer[2]	<=	data_buffer[3];
+							data_buffer[3]	<=	data_buffer[4];
+
+							data_buffer[5]	<=	data_buffer[6];
+							data_buffer[6]	<=	data_buffer[7];
+							data_buffer[7]	<=	data_buffer[8];
+							data_buffer[8]	<=	data_buffer[9];
+
+							data_buffer[10]	<=	data_buffer[11];
+							data_buffer[11]	<=	data_buffer[12];
+							data_buffer[12]	<=	data_buffer[13];
+							data_buffer[13]	<=	data_buffer[14];
+						end
+						2'b10:
+						begin
+							data_buffer[0]	<=	data_buffer[1];
+							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+							data_buffer[5]	<=	data_buffer[6];
+							data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+							data_buffer[10]	<=	data_buffer[11];
+							data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+							data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						end
+						2'b11:
+						begin
+							data_buffer[0]	<=	data_buffer[1];
+							data_buffer[1]	<=	data_buffer[2];
+							data_buffer[2]	<=	data_buffer[3];
+							data_buffer[3]	<=	data_buffer[4];
+
+							data_buffer[5]	<=	data_buffer[6];
+							data_buffer[6]	<=	data_buffer[7];
+							data_buffer[7]	<=	data_buffer[8];
+							data_buffer[8]	<=	data_buffer[9];
+
+							data_buffer[10]	<=	data_buffer[11];
+							data_buffer[11]	<=	data_buffer[12];
+							data_buffer[12]	<=	data_buffer[13];
+							data_buffer[13]	<=	data_buffer[14];
+						end
+					endcase
+				end
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(stride == 'd1)
+				begin
+					case(mem_data_col[1:0])
+						2'b00:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								if(mem_data_col == 6'b0)
+								begin
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+									data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+									data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+
+									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
+									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+									data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
+									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								end
+								else
+								begin
+									data_buffer[0]	<=	data_buffer[1];
+									data_buffer[1]	<=	data_buffer[2];
+									data_buffer[2]	<=	data_buffer[3];
+
+									data_buffer[5]	<=	data_buffer[6];
+									data_buffer[6]	<=	data_buffer[7];
+									data_buffer[7]	<=	data_buffer[8];
+
+									data_buffer[10]	<=	data_buffer[11];
+									data_buffer[11]	<=	data_buffer[12];
+									data_buffer[12]	<=	data_buffer[13];
+
+									data_buffer[15]	<=	data_buffer[16];
+									data_buffer[16]	<=	data_buffer[17];
+									data_buffer[17]	<=	data_buffer[18];
+
+									data_buffer[20]	<=	data_buffer[21];
+									data_buffer[21]	<=	data_buffer[22];
+									data_buffer[22]	<=	data_buffer[23];
+								end
+							end
+							else if(oversize_count == 'b1)
+							begin
+								if(mem_data_col == 6'b0)
+								begin
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+									data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+									data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+
+									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								end
+								else
+								begin
+									data_buffer[0]	<=	data_buffer[1];
+									data_buffer[1]	<=	data_buffer[2];
+
+									data_buffer[5]	<=	data_buffer[6];
+									data_buffer[6]	<=	data_buffer[7];
+
+									data_buffer[10]	<=	data_buffer[11];
+									data_buffer[11]	<=	data_buffer[12];
+
+									data_buffer[15]	<=	data_buffer[16];
+									data_buffer[16]	<=	data_buffer[17];
+
+									data_buffer[20]	<=	data_buffer[21];
+									data_buffer[21]	<=	data_buffer[22];
+								end
+							end
+							else if(oversize_count == 'b10)
+							begin
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
+								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+							end
+						end
+						2'b01:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	data_buffer[2];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	data_buffer[7];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	data_buffer[12];
+
+								data_buffer[15]	<=	data_buffer[16];
+								data_buffer[16]	<=	data_buffer[17];
+
+								data_buffer[20]	<=	data_buffer[21];
+								data_buffer[21]	<=	data_buffer[22];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+
+								data_buffer[15]	<=	data_buffer[16];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+
+								data_buffer[20]	<=	data_buffer[21];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
+								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	data_buffer[2];
+								data_buffer[2]	<=	data_buffer[3];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	data_buffer[7];
+								data_buffer[7]	<=	data_buffer[8];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	data_buffer[12];
+								data_buffer[12]	<=	data_buffer[13];
+
+								data_buffer[15]	<=	data_buffer[16];
+								data_buffer[16]	<=	data_buffer[17];
+								data_buffer[17]	<=	data_buffer[18];
+
+								data_buffer[20]	<=	data_buffer[21];
+								data_buffer[21]	<=	data_buffer[22];
+								data_buffer[22]	<=	data_buffer[23];
+							end
+						end
+						2'b10:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+
+								data_buffer[5]	<=	data_buffer[6];
+
+								data_buffer[10]	<=	data_buffer[11];
+
+								data_buffer[15]	<=	data_buffer[16];
+
+								data_buffer[20]	<=	data_buffer[21];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	data_buffer[2];
+								data_buffer[2]	<=	data_buffer[3];
+								data_buffer[3]	<=	data_buffer[4];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	data_buffer[7];
+								data_buffer[7]	<=	data_buffer[8];
+								data_buffer[8]	<=	data_buffer[9];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	data_buffer[12];
+								data_buffer[12]	<=	data_buffer[13];
+								data_buffer[13]	<=	data_buffer[14];
+
+								data_buffer[15]	<=	data_buffer[16];
+								data_buffer[16]	<=	data_buffer[17];
+								data_buffer[17]	<=	data_buffer[18];
+								data_buffer[18]	<=	data_buffer[19];
+
+								data_buffer[20]	<=	data_buffer[21];
+								data_buffer[21]	<=	data_buffer[22];
+								data_buffer[22]	<=	data_buffer[23];
+								data_buffer[23]	<=	data_buffer[24];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	data_buffer[2];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	data_buffer[7];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	data_buffer[12];
+
+								data_buffer[15]	<=	data_buffer[16];
+								data_buffer[16]	<=	data_buffer[17];
+
+								data_buffer[20]	<=	data_buffer[21];
+								data_buffer[21]	<=	data_buffer[22];
+							end
+						end
+						2'b11:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
+								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+								data_buffer[1]	<=	data_buffer[2];
+								data_buffer[2]	<=	data_buffer[3];
+
+								data_buffer[5]	<=	data_buffer[6];
+								data_buffer[6]	<=	data_buffer[7];
+								data_buffer[7]	<=	data_buffer[8];
+
+								data_buffer[10]	<=	data_buffer[11];
+								data_buffer[11]	<=	data_buffer[12];
+								data_buffer[12]	<=	data_buffer[13];
+
+								data_buffer[15]	<=	data_buffer[16];
+								data_buffer[16]	<=	data_buffer[17];
+								data_buffer[17]	<=	data_buffer[18];
+
+								data_buffer[20]	<=	data_buffer[21];
+								data_buffer[21]	<=	data_buffer[22];
+								data_buffer[22]	<=	data_buffer[23];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								data_buffer[0]	<=	data_buffer[1];
+
+								data_buffer[5]	<=	data_buffer[6];
+
+								data_buffer[10]	<=	data_buffer[11];
+
+								data_buffer[15]	<=	data_buffer[16];
+
+								data_buffer[20]	<=	data_buffer[21];
+							end
+						end
+					endcase
+				end
+			end
+		end
+	end
+
 
 	//input
 	// always_ff  @(posedge clk)
@@ -618,56 +1537,286 @@ module controller(
 					case (mem_data_col[1:0])
 						2'b00	:
 						begin
-							PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+							if(mem_data_col == 6'b0)
+							begin
+								PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+								PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+								PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+								PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+								PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+								PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+								PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+								PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+								PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+							end
+							else
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[2];
+								PE_data_input[3]	<=	data_buffer[5];
+								PE_data_input[4]	<=	data_buffer[6];
+								PE_data_input[5]	<=	data_buffer[7];
+								PE_data_input[6]	<=	data_buffer[10];
+								PE_data_input[7]	<=	data_buffer[11];
+								PE_data_input[8]	<=	data_buffer[12];
+							end
 						end
 						2'b01	:
 						begin
-							PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-							PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-							PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[1];
+							PE_data_input[2]	<=	data_buffer[2];
+							PE_data_input[3]	<=	data_buffer[5];
+							PE_data_input[4]	<=	data_buffer[6];
+							PE_data_input[5]	<=	data_buffer[7];
+							PE_data_input[6]	<=	data_buffer[10];
+							PE_data_input[7]	<=	data_buffer[11];
+							PE_data_input[8]	<=	data_buffer[12];
 						end
 						2'b10	:
 						begin
-							PE_data_input[0]	<=	PE_data_input[1];
-							PE_data_input[1]	<=	PE_data_input[2];
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[1];
 							PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							PE_data_input[3]	<=	PE_data_input[4];
-							PE_data_input[4]	<=	PE_data_input[5];
+							PE_data_input[3]	<=	data_buffer[5];
+							PE_data_input[4]	<=	data_buffer[6];
 							PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							PE_data_input[6]	<=	PE_data_input[7];
-							PE_data_input[7]	<=	PE_data_input[8];
+							PE_data_input[6]	<=	data_buffer[10];
+							PE_data_input[7]	<=	data_buffer[11];
 							PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
 						end
 						2'b11	:
 						begin
-							PE_data_input[0]	<=	PE_data_input[1];
-							PE_data_input[1]	<=	PE_data_input[2];
-							PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							PE_data_input[3]	<=	PE_data_input[4];
-							PE_data_input[4]	<=	PE_data_input[5];
-							PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							PE_data_input[6]	<=	PE_data_input[7];
-							PE_data_input[7]	<=	PE_data_input[8];
-							PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[1];
+							PE_data_input[2]	<=	data_buffer[2];
+							PE_data_input[3]	<=	data_buffer[5];
+							PE_data_input[4]	<=	data_buffer[6];
+							PE_data_input[5]	<=	data_buffer[7];
+							PE_data_input[6]	<=	data_buffer[10];
+							PE_data_input[7]	<=	data_buffer[11];
+							PE_data_input[8]	<=	data_buffer[12];
 						end
 						default	:
 						begin
 							foreach(PE_data_input[i])
 								PE_data_input[i]	<=	32'b0;
+						end
+					endcase
+				end
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(stride == 'd1)
+				begin
+					case (mem_data_col[1:0])
+						2'b00:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								if(mem_data_col == 6'b0)
+								begin
+									PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+									PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+									PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+									PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+									PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+									PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+									PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+									PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+									PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
+								end
+								else
+								begin
+									PE_data_input[0]	<=	data_buffer[0];
+									PE_data_input[1]	<=	data_buffer[5];
+									PE_data_input[2]	<=	data_buffer[10];
+									PE_data_input[3]	<=	data_buffer[15];
+									PE_data_input[4]	<=	data_buffer[20];
+									PE_data_input[5]	<=	data_buffer[1];
+									PE_data_input[6]	<=	data_buffer[6];
+									PE_data_input[7]	<=	data_buffer[11];
+									PE_data_input[8]	<=	data_buffer[16];
+								end
+							end
+							else if(oversize_count == 'b1)
+							begin
+								if(mem_data_col == 6'b0)
+								begin
+									PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
+									PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+									PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+									PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+									PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+									PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+									PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								end
+								else
+								begin
+									PE_data_input[0]	<=	data_buffer[20];
+									PE_data_input[1]	<=	data_buffer[1];
+									PE_data_input[2]	<=	data_buffer[6];
+									PE_data_input[3]	<=	data_buffer[11];
+									PE_data_input[4]	<=	data_buffer[16];
+									PE_data_input[5]	<=	data_buffer[21];
+									PE_data_input[6]	<=	data_buffer[2];
+									PE_data_input[7]	<=	data_buffer[7];
+									PE_data_input[8]	<=	data_buffer[12];
+								end
+							end
+							else if(oversize_count == 'b10)
+							begin
+								if(mem_data_col == 6'b0)
+								begin
+									if(mem_data_oversize_first == 'b0)
+									begin
+										PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+										PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									end
+									else
+									begin
+										PE_data_input[0]	<=	PE_data_input[0];
+										PE_data_input[1]	<=	PE_data_input[1];
+										PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+										PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+										PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+										PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+										PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+										PE_data_input[7]	<=	32'b0;
+										PE_data_input[8]	<=	32'b0;
+									end
+								end
+								else
+								begin
+									PE_data_input[0]	<=	data_buffer[15];
+									PE_data_input[1]	<=	data_buffer[20];
+									PE_data_input[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+									PE_data_input[3]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+									PE_data_input[4]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+									PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+									PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+									PE_data_input[7]	<=	32'b0;
+									PE_data_input[8]	<=	32'b0;
+								end
+							end
+						end
+						2'b01:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[5];
+								PE_data_input[2]	<=	data_buffer[10];
+								PE_data_input[3]	<=	data_buffer[15];
+								PE_data_input[4]	<=	data_buffer[20];
+								PE_data_input[5]	<=	data_buffer[1];
+								PE_data_input[6]	<=	data_buffer[6];
+								PE_data_input[7]	<=	data_buffer[11];
+								PE_data_input[8]	<=	data_buffer[16];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[20];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[6];
+								PE_data_input[3]	<=	data_buffer[11];
+								PE_data_input[4]	<=	data_buffer[16];
+								PE_data_input[5]	<=	data_buffer[21];
+								PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+								PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+								PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[15];
+								PE_data_input[1]	<=	data_buffer[20];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[6];
+								PE_data_input[4]	<=	data_buffer[11];
+								PE_data_input[5]	<=	data_buffer[16];
+								PE_data_input[6]	<=	data_buffer[21];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
+						end
+						2'b10:
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[5];
+								PE_data_input[2]	<=	data_buffer[10];
+								PE_data_input[3]	<=	data_buffer[15];
+								PE_data_input[4]	<=	data_buffer[20];
+								PE_data_input[5]	<=	data_buffer[1];
+								PE_data_input[6]	<=	data_buffer[6];
+								PE_data_input[7]	<=	data_buffer[11];
+								PE_data_input[8]	<=	data_buffer[16];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[20];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[6];
+								PE_data_input[3]	<=	data_buffer[11];
+								PE_data_input[4]	<=	data_buffer[16];
+								PE_data_input[5]	<=	data_buffer[21];
+								PE_data_input[6]	<=	data_buffer[2];
+								PE_data_input[7]	<=	data_buffer[7];
+								PE_data_input[8]	<=	data_buffer[12];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[15];
+								PE_data_input[1]	<=	data_buffer[20];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[6];
+								PE_data_input[4]	<=	data_buffer[11];
+								PE_data_input[5]	<=	data_buffer[16];
+								PE_data_input[6]	<=	data_buffer[21];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
+						2'b11:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[5];
+								PE_data_input[2]	<=	data_buffer[10];
+								PE_data_input[3]	<=	data_buffer[15];
+								PE_data_input[4]	<=	data_buffer[20];
+								PE_data_input[5]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+								PE_data_input[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+								PE_data_input[7]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+								PE_data_input[8]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[20];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[6];
+								PE_data_input[3]	<=	data_buffer[11];
+								PE_data_input[4]	<=	data_buffer[16];
+								PE_data_input[5]	<=	data_buffer[21];
+								PE_data_input[6]	<=	data_buffer[2];
+								PE_data_input[7]	<=	data_buffer[7];
+								PE_data_input[8]	<=	data_buffer[12];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[15];
+								PE_data_input[1]	<=	data_buffer[20];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[6];
+								PE_data_input[4]	<=	data_buffer[11];
+								PE_data_input[5]	<=	data_buffer[16];
+								PE_data_input[6]	<=	data_buffer[21];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
 						end
 					endcase
 				end
@@ -682,7 +1831,7 @@ module controller(
 			foreach(PE_data_pre_psum[i])
 				PE_data_pre_psum[i]	<=	32'b0;
 		end
-		else if(controller_cur_channel == 1'b0 || cur_state == IDLE)
+		else if((controller_cur_channel == 1'b0 && oversize_count == 1'b0) || cur_state == IDLE)
 		begin
 			foreach(PE_data_pre_psum[i])
 				PE_data_pre_psum[i]	<=	32'b0;

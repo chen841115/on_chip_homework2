@@ -16,7 +16,7 @@ module output_SRAM (
     OENB
 );
 
-    parameter  Words = 2880;
+    parameter  Words = 4096;
     parameter  Bits = 32;            
     parameter  AddressSize = 12;
 

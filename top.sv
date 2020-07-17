@@ -71,18 +71,18 @@ module top(
 	logic	output_SRAM_CEN_DMA;
 	logic	output_SRAM_CEN_controller;
 	//input_SRAM
-	logic	[127:0]	input_SRAM_DI		[0:51];
-	logic	[127:0]	input_SRAM_DO		[0:51];
-	logic	[6:0]	input_SRAM_A		[0:51];
-	logic	input_SRAM_CEN	[0:51];
-	logic	input_SRAM_OEN	[0:51];
-	logic	input_SRAM_WEN	[0:51]; 
+	logic	[127:0]	input_SRAM_DI		[0:63];
+	logic	[127:0]	input_SRAM_DO		[0:63];
+	logic	[6:0]	input_SRAM_A		[0:63];
+	logic	input_SRAM_CEN	[0:63];
+	logic	input_SRAM_OEN	[0:63];
+	logic	input_SRAM_WEN	[0:63]; 
 	//input SRAM read/write
-	logic	[6:0]	input_SRAM_A_read	[0:51];
-	logic	[6:0]	input_SRAM_A_write	[0:51];
-	logic	input_SRAM_CEN_read		[0:51];
-	logic	input_SRAM_CEN_write	[0:51];
-	logic	input_SRAM_rw_select	[0:51];		//0-> read 1->write
+	logic	[6:0]	input_SRAM_A_read	[0:63];
+	logic	[6:0]	input_SRAM_A_write	[0:63];
+	logic	input_SRAM_CEN_read		[0:63];
+	logic	input_SRAM_CEN_write	[0:63];
+	logic	input_SRAM_rw_select	[0:63];		//0-> read 1->write
 	//weight_SRAM
 	logic	[287:0]	weight_SRAM_DI		[0:31];
 	logic	[287:0]	weight_SRAM_DO		[0:31];
@@ -148,7 +148,7 @@ module top(
 	logic	SRAM_type,DMA_buf_select;
 	logic	DMA_type;		//0->read 1->write
 	//signal for buffer to sram
-	logic	input_SRAM_ready	[0:51];
+	logic	input_SRAM_ready	[0:63];
 	logic	[2:0]	controller_cur_state;
 	logic	[5:0]	controller_cur_row;
 	logic	transfer_controller_done;
@@ -389,9 +389,9 @@ module top(
     //SRAM
     genvar i;
 	//ping-pong SRAM
-	//input_SRAM * 8
+	//input_SRAM * 64
 	generate
-		for(i=0;i<52;i=i+1)
+		for(i=0;i<64;i=i+1)
 		begin: u_input_SRAM
 			input_SRAM input_SRAM_i(
 				.CLK(clk),

@@ -56,17 +56,17 @@ int main(){
                 for(int in_c = 0; in_c < input_C; in_c++){ //filter channel
                     for(int f_h = 0; f_h < f_size; f_h++){
                         for(int f_w = 0; f_w < f_size; f_w++){
-                            // if((f_ch * output_W * output_H + out_h * output_W + out_w) == 2570940)
-                            // {
-                            //     printf("f_ch:%d  in_c:%d  f_h:%d  f_w:%d\n",f_ch,in_c,f_h,f_w);
-                            //     printf("output : %d\n",f_ch * output_W * output_H + out_h * output_W + out_w);
-                            //     printf("input : %d\n",(in_c * input_H * input_W) + out_h * input_W + out_w + f_h * input_W + f_w);
-                            //     printf("weight : %d\n",(f_ch * input_C * f_size * f_size) + (in_c * f_size * f_size) + (f_size * f_h) + f_w);
-                            //     printf("output : %d\n",output[f_ch * output_W * output_H + out_h * output_W + out_w]);
-                            //     printf("input : %d\n",input[(in_c * input_H * input_W) + out_h * input_W + out_w + f_h * input_W + f_w]);
-                            //     printf("weight : %d\n",weight[(f_ch * input_C * f_size * f_size) + (in_c * f_size * f_size) + (f_size * f_h) + f_w]);
-                            //     printf("\n");
-                            // }
+                            if((f_ch * output_W * output_H + out_h * output_W + out_w) == 100 && in_c <= 10)
+                            {
+                                printf("f_ch:%d  in_c:%d  f_h:%d  f_w:%d\n",f_ch,in_c,f_h,f_w);
+                                printf("output : %d\n",f_ch * output_W * output_H + out_h * output_W + out_w);
+                                printf("input : %d\n",(in_c * input_H * input_W) + out_h * input_W + out_w + f_h * input_W + f_w);
+                                printf("weight : %d\n",(f_ch * input_C * f_size * f_size) + (in_c * f_size * f_size) + (f_size * f_h) + f_w);
+                                printf("output : %d\n",output[f_ch * output_W * output_H + out_h * output_W + out_w]);
+                                printf("input : %d\n",input[(in_c * input_H * input_W) + out_h * input_W + out_w + f_h * input_W + f_w]);
+                                printf("weight : %d\n",weight[(f_ch * input_C * f_size * f_size) + (in_c * f_size * f_size) + (f_size * f_h) + f_w]);
+                                printf("\n");
+                            }
                             output[f_ch * output_W * output_H + out_h * output_W + out_w] = output[f_ch * output_W * output_H + out_h * output_W + out_w] + 
                                                         input[(in_c * input_H * input_W) + out_h * input_W + out_w + f_h * input_W + f_w] * 
                                                         weight[(f_ch * input_C * f_size * f_size) + (in_c * f_size * f_size) + (f_size * f_h) + f_w]; 
@@ -78,8 +78,9 @@ int main(){
             }
         }
     }
-    //printf(": %d \n",output[2570940]);
-    printf(": %d %d %d\n",output[0],input[0],weight[0]);
+    // printf(": %d \n",output[2570940]);
+    // printf(": %d %d %d\n",output[0],input[0],weight[0]);
+    // 
     FILE *pfile;
     pfile = fopen("output.hex","w");
 
