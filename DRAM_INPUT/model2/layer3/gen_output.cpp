@@ -56,7 +56,7 @@ int main(){
                 for(int in_c = 0; in_c < input_C; in_c++){ //filter channel
                     for(int f_h = 0; f_h < f_size; f_h++){
                         for(int f_w = 0; f_w < f_size; f_w++){
-                            if((f_ch * output_W * output_H + out_h * output_W + out_w) == 2570940)
+                            if((f_ch * output_W * output_H + out_h * output_W + out_w) == 0 && in_c == 32)
                             {
                                 printf("f_ch:%d  in_c:%d  f_h:%d  f_w:%d\n",f_ch,in_c,f_h,f_w);
                                 printf("output : %d\n",f_ch * output_W * output_H + out_h * output_W + out_w);

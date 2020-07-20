@@ -407,7 +407,6 @@ addSignal -h 15 -holdScope output_SRAM_OEN
 addSignal -h 15 -holdScope mem_data_addr[0][11:0]
 addSignal -h 15 -holdScope PE_psum_addr[0][11:0]
 addSignal -h 15 -UNSIGNED -UDEC -holdScope weight_SRAM_A[0:31]
-addSignal -h 15 -holdScope controller_cur_channel[9:0]
 addSignal -h 15 -UNSIGNED -UDEC /top_tb/top_1/transfer_controller_1/cur_channel[9:0]
 addSignal -h 15 -holdScope row_index[9:0]
 addGroup "DMA"
@@ -584,7 +583,6 @@ addGroup "G11" -e FALSE
 addSignal -h 15 -UNSIGNED -BIN /top_tb/top_1/transfer_controller_1/cur_state[3:0]
 addSignal -h 15 -holdScope row_index[9:0]
 addSignal -h 15 /top_tb/top_1/controller_1/oversize_count[4:0]
-addSignal -h 15 -holdScope controller_cur_channel[9:0]
 addSignal -h 15 -UNSIGNED -UDEC -holdScope cur_col[5:0]
 addSignal -h 15 -UNSIGNED -UDEC -holdScope cur_row[5:0]
 addSignal -expanded -h 15 -UNSIGNED -UDEC -holdScope weight_SRAM_A[0:31]

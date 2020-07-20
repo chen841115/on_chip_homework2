@@ -22,6 +22,7 @@ module top_tb;
 	logic	[9:0]	channel;
 	logic	[9:0]	map_size;
 	logic	[9:0]	ouput_map_size;
+	logic	[1:0]	pooling;
 	logic	run;
 
 	//DRAM
@@ -60,6 +61,7 @@ module top_tb;
         .channel(channel),
 		.map_size(map_size),
 		.ouput_map_size(ouput_map_size),
+		.pooling(pooling),
 		//DRAM
 		.Q(Q),
 		.CSn(CSn),
@@ -83,12 +85,12 @@ module top_tb;
         // channel = 3;
 		// map_size = 416;
 		// ouput_map_size = 414;
-		kernel_size = 5;
+		kernel_size = 3;
         stride = 1;
         kernel_num = 64;
-        channel = 32;
-		map_size = 104;
-		ouput_map_size = 100;
+        channel = 256;
+		map_size = 52;
+		ouput_map_size = 50;
 		run = 0;
 
 
@@ -100,10 +102,10 @@ module top_tb;
         // $readmemh({prog_path, "/test1.hex"}, DRAM_1.Memory_byte1);
         // $readmemh({prog_path, "/test2.hex"}, DRAM_1.Memory_byte2);
         // $readmemh({prog_path, "/test3.hex"}, DRAM_1.Memory_byte3);
-		$readmemh({prog_path, "model2/layer2/input0.hex"}, DRAM_1.Memory_byte0);
-        $readmemh({prog_path, "model2/layer2/input1.hex"}, DRAM_1.Memory_byte1);
-        $readmemh({prog_path, "model2/layer2/input2.hex"}, DRAM_1.Memory_byte2);
-        $readmemh({prog_path, "model2/layer2/input3.hex"}, DRAM_1.Memory_byte3);
+		$readmemh({prog_path, "model1/layer6/input0.hex"}, DRAM_1.Memory_byte0);
+        $readmemh({prog_path, "model1/layer6/input1.hex"}, DRAM_1.Memory_byte1);
+        $readmemh({prog_path, "model1/layer6/input2.hex"}, DRAM_1.Memory_byte2);
+        $readmemh({prog_path, "model1/layer6/input3.hex"}, DRAM_1.Memory_byte3);
         #(`CYCLE*10) run = 0;
         //#(`CYCLE*5000) $finish;
     end
@@ -117,13 +119,13 @@ module top_tb;
 
 	initial begin
         //#(`CYCLE*10000000)
-		//#(`CYCLE*1000000)
-		#(`CYCLE*3000000)
+		#(`CYCLE*10000000)
+		//#(`CYCLE*6000000)
 		//#(`CYCLE*900000)
 		//h = 50 * 50 * 128;
-		h = 100*100;//*50*32;
+		h = 50*50 + 50*50*63;//*50*32;
 		num = 0;
-		gf = $fopen({prog_path, "model2/layer2/output.txt"}, "r");
+		gf = $fopen({prog_path, "model1/layer6/output.txt"}, "r");
         while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);

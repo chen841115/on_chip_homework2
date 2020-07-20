@@ -23,6 +23,7 @@ module top(
 	channel,
 	map_size,
 	ouput_map_size,
+	pooling,
 	//DRAM
 	Q,
 	CSn,
@@ -43,6 +44,7 @@ module top(
 	input	[9:0]	channel;
 	input	[9:0]	map_size;
 	input	[9:0]	ouput_map_size;
+	input	[1:0]	pooling;
 	//DRAM
 	input	[31:0]	Q;				//Data Output
 	output	logic	CSn;			//Chip Select
@@ -98,7 +100,8 @@ module top(
 	logic	weight_SRAM_rw_select;		//0-> read 1->write
     //controller
 	logic	controller_run;
-	logic	[9:0]	controller_cur_channel;
+	logic	[9:0]	act_cur_channel;
+	logic	[9:0]	cur_channel;
     //logic   DMA_done;
 	logic	[5:0]	row_end;
 	logic	[5:0]	col_end;
@@ -236,7 +239,8 @@ module top(
         .stride(stride),
         .channel(channel),
         .tile_done(tile_done),
-		.controller_cur_channel(controller_cur_channel),
+		.act_cur_channel(act_cur_channel),
+		.cur_channel(cur_channel),
         //SRAM
         //output_SRAM
         .output_SRAM_DI(output_SRAM_DI),
@@ -345,7 +349,8 @@ module top(
 		.row_end(row_end),
 		.col_end(col_end),
 		.controller_run(controller_run),
-		.act_cur_channel(controller_cur_channel),
+		.act_cur_channel(act_cur_channel),
+		.cur_channel(cur_channel),
 	    //DMA
 	    .DRAM_ADDR_start(DRAM_ADDR_start),
 	    .DRAM_ADDR_end(DRAM_ADDR_end),

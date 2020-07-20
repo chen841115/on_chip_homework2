@@ -318,7 +318,8 @@ module DMA(
 				end
 				else if(kernel_size == 'd5)
 				begin
-					if(DRAM_data_count=='d23 || DRAM_data_count=='d24||DRAM_data_count=='d25)
+					//if((DRAM_data_count=='d23 || DRAM_data_count=='d24||DRAM_data_count=='d25) && DRAM_data_flag[3] == 1'b1)
+					if((DRAM_data_count=='d23&&DRAM_data_flag[3]==1'b1)||(DRAM_data_count=='d24&&DRAM_data_flag[3]==1'b1)||(DRAM_data_count=='d25))
 					begin
 						integer	i;
 						for(i=0;i<32;i++)
@@ -912,12 +913,21 @@ module DMA(
 			end
 			else if(kernel_size == 'd5)
 			begin
-				if(DRAM_data_count	==	'd23)
+				if(DRAM_data_count	==	'd23 && DRAM_data_flag[3] == 1'b1)
 					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
-				else if(DRAM_data_count	==	'd24)
+				else if(DRAM_data_count	==	'd24 && DRAM_data_flag[3] == 1'b1)
 					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
 				else if(DRAM_data_count	==	'd25)
 					cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				// if(DRAM_data_flag[3] == 1'b1)
+				// begin
+				// 	if(DRAM_data_count	==	'd23)
+				// 		cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				// 	else if(DRAM_data_count	==	'd24)
+				// 		cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				// 	else if(DRAM_data_count	==	'd25)
+				// 		cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				// end
 			end
 		end
 		else if(DMA_type == 1'b1)

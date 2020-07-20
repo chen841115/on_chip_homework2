@@ -13,7 +13,8 @@ module controller(
 	stride,
 	channel,
 	tile_done,
-	controller_cur_channel,
+	act_cur_channel,
+	cur_channel,
 	//SRAM
 	//output_SRAM
 	output_SRAM_DI,
@@ -52,7 +53,8 @@ module controller(
 	input	[2:0]	stride;
 	input	[9:0]	channel;
 	output	logic	tile_done;
-	input	[9:0]	controller_cur_channel;
+	input	[9:0]	act_cur_channel;
+	input	[9:0]	cur_channel;
 	//output_SRAM
 	output	logic	[31:0]	output_SRAM_DI		[0:31];
 	input	logic	[31:0]	output_SRAM_DO		[0:31];
@@ -790,7 +792,7 @@ module controller(
 			if(cur_state == S1 && filter_times_now <= filter_times)
 			begin
 				foreach(weight_SRAM_A[i])
-					weight_SRAM_A[i]	<=	controller_cur_channel[6:0];
+					weight_SRAM_A[i]	<=	cur_channel[6:0];
 			end
 			else
 			begin
@@ -803,7 +805,7 @@ module controller(
 			if(cur_state == S1 && filter_times_now <= filter_times)
 			begin
 				foreach(weight_SRAM_A[i])
-					weight_SRAM_A[i]	<=	(controller_cur_channel[6:0]*'d3) + oversize_count;
+					weight_SRAM_A[i]	<=	(cur_channel[6:0]*'d3) + oversize_count;
 			end
 			else
 			begin
@@ -1671,7 +1673,7 @@ module controller(
 							begin
 								if(mem_data_col == 6'b0)
 								begin
-									if(mem_data_oversize_first == 'b0)
+									if(mem_data_oversize_first == 'b1)
 									begin
 										PE_data_input[0]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
 										PE_data_input[1]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
@@ -1831,7 +1833,7 @@ module controller(
 			foreach(PE_data_pre_psum[i])
 				PE_data_pre_psum[i]	<=	32'b0;
 		end
-		else if((controller_cur_channel == 1'b0 && oversize_count == 1'b0) || cur_state == IDLE)
+		else if((act_cur_channel == 1'b0 && oversize_count == 1'b0) || cur_state == IDLE)
 		begin
 			foreach(PE_data_pre_psum[i])
 				PE_data_pre_psum[i]	<=	32'b0;
@@ -1855,20 +1857,41 @@ module controller(
 			if_do_bias			<=	1'b0;
 			if_do_activation	<=	2'b0;
 		end
-		else if(mem_access_state == S1 && cur_state != IDLE)// && cur_state == S1)
+		else if(kernel_size == 'd3)
 		begin
-			read_input_enable	<=	1'b1;
-			read_weight_enable	<=	1'b1;
-			read_psum_enable	<=	1'b1;
+			if(mem_access_state == S1 && cur_state != IDLE)// && cur_state == S1)
+			begin
+				read_input_enable	<=	1'b1;
+				read_weight_enable	<=	1'b1;
+				read_psum_enable	<=	1'b1;
+			end
+			else
+			begin
+				read_input_enable	<=	1'b0;
+				read_weight_enable	<=	1'b0;
+				read_psum_enable	<=	1'b0;
+				read_bias_enable	<=	1'b0;
+				if_do_bias			<=	1'b0;
+				if_do_activation	<=	2'b0;
+			end
 		end
-		else
+		else if(kernel_size == 'd5)
 		begin
-			read_input_enable	<=	1'b0;
-			read_weight_enable	<=	1'b0;
-			read_psum_enable	<=	1'b0;
-			read_bias_enable	<=	1'b0;
-			if_do_bias			<=	1'b0;
-			if_do_activation	<=	2'b0;
+			if(mem_access_state == S1 && cur_state != IDLE || mem_access_state == S2)// && cur_state == S1)
+			begin
+				read_input_enable	<=	1'b1;
+				read_weight_enable	<=	1'b1;
+				read_psum_enable	<=	1'b1;
+			end
+			else
+			begin
+				read_input_enable	<=	1'b0;
+				read_weight_enable	<=	1'b0;
+				read_psum_enable	<=	1'b0;
+				read_bias_enable	<=	1'b0;
+				if_do_bias			<=	1'b0;
+				if_do_activation	<=	2'b0;
+			end
 		end
 	end
 
