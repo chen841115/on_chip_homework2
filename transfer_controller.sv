@@ -10,6 +10,7 @@ module transfer_controller(
 	controller_run,
 	act_cur_channel,
 	cur_channel,
+	pooling_enable,
     //DMA
     DRAM_ADDR_start,
     DRAM_ADDR_end,
@@ -38,6 +39,7 @@ module transfer_controller(
 	channel,
 	map_size,
 	ouput_map_size,
+	pooling,
 	//signal for buffer to sram
 	input_SRAM_ready,
 	controller_cur_row,
@@ -97,6 +99,9 @@ module transfer_controller(
 	output	logic	output_sram_read_select;
 	output	logic	weight_SRAM_rw_select;
 	output	logic	DMA_type;
+	//pooling
+	input	[1:0]	pooling;
+	output	logic	pooling_enable;
 
     //
     logic   [9:0]   map_col;
@@ -361,6 +366,30 @@ module transfer_controller(
 			else
 				filter_channel_length	=	'd42;
 		end
+	end
+
+	//pooling_enable
+	always_comb
+	begin
+		if(pooling != 'b0)
+		begin
+			if(kernel_size == 'd3)
+			begin
+				if(filter_channel+8'd128 >= channel && cur_channel==filter_channel_length - 1'b1)
+					pooling_enable	=	1'b1;
+				else
+					pooling_enable	=	1'b0;
+			end
+			else if(kernel_size == 'd5)
+			begin
+				if(filter_channel+'d42 >= channel && cur_channel==filter_channel_length - 1'b1)
+					pooling_enable	=	1'b1;
+				else
+					pooling_enable	=	1'b0;
+			end
+		end
+		else
+			pooling_enable	=	1'b0;
 	end
 
 	//controller_run
@@ -656,14 +685,30 @@ module transfer_controller(
 		end
 		else if(cur_state == 'b1000)
 		begin
-			DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-								((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
 			if(kernel_size == 'd3)
-				DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-									((output_sram_row_index + map_row) * ouput_map_size) + 'd61 + `OUTPUT_START + map_col) << 2;
+			begin
+				if(pooling_enable)
+				begin
+					DRAM_ADDR_start	<=	(((output_sram_map_total_size>>2) * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * (ouput_map_size>>1)) + `OUTPUT_START + map_col) << 2;
+					DRAM_ADDR_end	<=	(((output_sram_map_total_size>>2) * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * (ouput_map_size>>1)) + 'd30 + `OUTPUT_START + map_col) << 2;
+				end
+				else
+				begin
+					DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
+					DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * ouput_map_size) + 'd61 + `OUTPUT_START + map_col) << 2;
+				end
+			end
 			else if(kernel_size == 'd5)
+			begin
+				DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+									((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
 				DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
 									((output_sram_row_index + map_row) * ouput_map_size) + 'd59 + `OUTPUT_START + map_col) << 2;
+			end
 		end
 		else if(cur_state == 'b1100)
 		begin
@@ -935,7 +980,10 @@ module transfer_controller(
 		else if(cur_state == 'b1000)
 		begin
 			Output_SRAM_ADDR_start[17:12]	<=	cur_filter;
-			Output_SRAM_ADDR_start[11:0]	<=	(output_sram_row_index * 'd62);
+			if(kernel_size == 'd3)
+				Output_SRAM_ADDR_start[11:0]	<=	(output_sram_row_index * 'd62);
+			else if(kernel_size == 'd5)
+				Output_SRAM_ADDR_start[11:0]	<=	(output_sram_row_index * 'd62);
 		end
 	end
 	//Output_SRAM_ADDR_end
@@ -946,7 +994,15 @@ module transfer_controller(
 		else if(cur_state == 'b1000)
 		begin
 			Output_SRAM_ADDR_end[17:12]	<=	cur_filter;
-			Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
+			if(kernel_size == 'd3)
+			begin
+				if(pooling_enable)
+					Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + ((col_length-kernel_size)>>1);
+				else
+					Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
+			end
+			else if(kernel_size == 'd5)
+				Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
 		end
 	end
 	//output_sram_row_index

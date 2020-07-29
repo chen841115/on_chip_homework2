@@ -5,13 +5,13 @@
 //===input size===
 #define input_W (52)
 #define input_H (52)
-#define input_C (256)
+#define input_C (3)
 //===filter size===
-#define f_size (3)
-#define f_channel (64)
+#define f_size (5)
+#define f_channel (32)
 //===output size===
-#define output_W (50)
-#define output_H (50)
+#define output_W (48)
+#define output_H (48)
 //max pooling
 #define max_pooling (1)
 
@@ -69,7 +69,7 @@ int main(){
                 for(int in_c = 0; in_c < input_C; in_c++){ //filter channel
                     for(int f_h = 0; f_h < f_size; f_h++){
                         for(int f_w = 0; f_w < f_size; f_w++){
-                            if((f_ch * output_W * output_H + out_h * output_W + out_w) == 20334)
+                            if((f_ch * output_W * output_H + out_h * output_W + out_w) == 1)
                             {
                                 printf("f_ch:%d  in_c:%d  f_h:%d  f_w:%d\n",f_ch,in_c,f_h,f_w);
                                 printf("output : %d\n",f_ch * output_W * output_H + out_h * output_W + out_w);

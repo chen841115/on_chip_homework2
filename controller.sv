@@ -15,6 +15,7 @@ module controller(
 	tile_done,
 	act_cur_channel,
 	cur_channel,
+	pooling_enable,
 	//SRAM
 	//output_SRAM
 	output_SRAM_DI,
@@ -55,6 +56,7 @@ module controller(
 	output	logic	tile_done;
 	input	[9:0]	act_cur_channel;
 	input	[9:0]	cur_channel;
+	input	pooling_enable;
 	//output_SRAM
 	output	logic	[31:0]	output_SRAM_DI		[0:31];
 	input	logic	[31:0]	output_SRAM_DO		[0:31];
@@ -104,6 +106,8 @@ module controller(
 	//inner logic
 	logic	[5:0]	cur_row,mem_access_row,mem_data_row;
 	logic	[5:0]	cur_col,mem_access_col,mem_data_col;
+	logic	[5:0]	PE_row,PE_mult_row,PE_add_row,PE_out_row;
+	logic	[5:0]	PE_col,PE_mult_col,PE_add_col,PE_out_col;
 	logic	[5:0]	next_row;
 	logic	[5:0]	next_col;
 	logic	[5:0]	filter_times;
@@ -130,6 +134,12 @@ module controller(
 	logic	[4:0]	oversize_count;
 	logic	[1:0]	oversize_first,mem_access_oversize_first,mem_data_oversize_first;
 	logic	oversize_part_done;
+	//max_pooling
+	logic	[31:0]	max_pooling_buffer1	[0:31];
+	logic	[31:0]	max_pooling_buffer2	[0:31];
+	logic	[31:0]	max_pooling_buffer3	[0:31];
+	logic	pooling_delay;
+	logic	state_done;
 
 	//reg store input feature
 
@@ -177,7 +187,7 @@ module controller(
 				end
 				S1:
 				begin
-					if(tile_done || oversize_part_done)	
+					if(state_done || oversize_part_done)	
 						next_state = S2;
 					else			
 						next_state = S1;
@@ -187,7 +197,13 @@ module controller(
 					if(~controller_run)	
 					begin
 						if((kernel_size == 'd3))
-							next_state = IDLE;
+						begin
+							if(tile_done)
+								next_state = IDLE;
+							else
+								next_state = S2;
+						end
+							// next_state = IDLE;
 						else
 							next_state = S3;
 					end
@@ -289,54 +305,110 @@ module controller(
 		begin
 			if(stride == 'd1)
 			begin
-				if(cur_col >= (col_end - kernel_size + 'b1))
+				if(cur_state == S1)
 				begin
-					if(cur_row >= (row_end - kernel_size + 'b1))
+					if(pooling_enable)
 					begin
-						next_col = 5'd0;
-						next_row = 5'd0;
+						if(pooling_delay)
+						begin
+							if(cur_col >= (col_end - kernel_size + 'b1))
+							begin
+								if(cur_row >= (row_end - kernel_size + 'b1))
+								begin
+									next_col = 5'd0;
+									next_row = 5'd0;
+								end
+								else
+								begin
+									next_col = 5'd0;
+									next_row = cur_row + 5'd1;
+								end
+							end
+							else
+							begin
+								next_col = cur_col + 1'b1;
+								next_row = cur_row;
+							end
+						end
 					end
 					else
 					begin
-						next_col = 5'd0;
-						next_row = cur_row + 5'd1;
+						if(cur_col >= (col_end - kernel_size + 'b1))
+						begin
+							if(cur_row >= (row_end - kernel_size + 'b1))
+							begin
+								next_col = 5'd0;
+								next_row = 5'd0;
+							end
+							else
+							begin
+								next_col = 5'd0;
+								next_row = cur_row + 5'd1;
+							end
+						end
+						else
+						begin
+							next_col = cur_col + 1'b1;
+							next_row = cur_row;
+						end
 					end
 				end
 				else
 				begin
-					if(cur_state == S1)
-					begin
-						next_col = cur_col + 1'b1;
-						next_row = cur_row;
-					end
-					else
-					begin
-						next_col = 5'd0;
-						next_row = 5'd0;
-					end
+					next_col = 5'd0;
+					next_row = 5'd0;
 				end
 			end
+			// if(stride == 'd1)
+			// begin
+			// 	if(cur_col >= (col_end - kernel_size + 'b1))
+			// 	begin
+			// 		if(cur_row >= (row_end - kernel_size + 'b1))
+			// 		begin
+			// 			next_col = 5'd0;
+			// 			next_row = 5'd0;
+			// 		end
+			// 		else
+			// 		begin
+			// 			next_col = 5'd0;
+			// 			next_row = cur_row + 5'd1;
+			// 		end
+			// 	end
+			// 	else
+			// 	begin
+			// 		if(cur_state == S1)
+			// 		begin
+			// 			next_col = cur_col + 1'b1;
+			// 			next_row = cur_row;
+			// 		end
+			// 		else
+			// 		begin
+			// 			next_col = 5'd0;
+			// 			next_row = 5'd0;
+			// 		end
+			// 	end
+			// end
 		end
 		else if(kernel_size == 'd5)
 		begin
 			if(stride == 'd1)
 			begin
-				if(cur_col >= (col_end - kernel_size + 'b1))
+				if(cur_state == S1)
 				begin
-					if(cur_row >= (row_end - kernel_size + 'b1))
+					if(cur_col >= (col_end - kernel_size + 'b1))
 					begin
-						next_col = 5'd0;
-						next_row = 5'd0;
+						if(cur_row >= (row_end - kernel_size + 'b1))
+						begin
+							next_col = 5'd0;
+							next_row = 5'd0;
+						end
+						else
+						begin
+							next_col = 5'd0;
+							next_row = cur_row + 5'd1;
+						end
 					end
 					else
-					begin
-						next_col = 5'd0;
-						next_row = cur_row + 5'd1;
-					end
-				end
-				else
-				begin
-					if(cur_state == S1)
 					begin
 						if(cur_col == 6'b0 && oversize_count == 'b10)
 						begin
@@ -349,13 +421,50 @@ module controller(
 							next_col = cur_col + 1'b1;
 						next_row = cur_row;
 					end
-					else
-					begin
-						next_col = 5'd0;
-						next_row = 5'd0;
-					end
+				end
+				else
+				begin
+					next_col = 5'd0;
+					next_row = 5'd0;
 				end
 			end
+			// if(stride == 'd1)
+			// begin
+			// 	if(cur_col >= (col_end - kernel_size + 'b1))
+			// 	begin
+			// 		if(cur_row >= (row_end - kernel_size + 'b1))
+			// 		begin
+			// 			next_col = 5'd0;
+			// 			next_row = 5'd0;
+			// 		end
+			// 		else
+			// 		begin
+			// 			next_col = 5'd0;
+			// 			next_row = cur_row + 5'd1;
+			// 		end
+			// 	end
+			// 	else
+			// 	begin
+			// 		if(cur_state == S1)
+			// 		begin
+			// 			if(cur_col == 6'b0 && oversize_count == 'b10)
+			// 			begin
+			// 				if(oversize_first == 'b10)
+			// 					next_col = cur_col + 1'b1;
+			// 				else
+			// 					next_col = cur_col;
+			// 			end
+			// 			else
+			// 				next_col = cur_col + 1'b1;
+			// 			next_row = cur_row;
+			// 		end
+			// 		else
+			// 		begin
+			// 			next_col = 5'd0;
+			// 			next_row = 5'd0;
+			// 		end
+			// 	end
+			// end
 		end
 	end
 
@@ -569,39 +678,53 @@ module controller(
 	// assign	input_select[0]	=	cur_row[2:0];
 	// assign	input_select[1]	=	cur_row[2:0] + 'd1;
 	// assign	input_select[2]	=	cur_row[2:0] + 'd2;
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
-		input_select[0]	<=	next_row;
-		input_select[1]	<=	next_row + 'd1;
-		input_select[2]	<=	next_row + 'd2;
-		if(kernel_size == 'd5)
+		if(rst)
 		begin
-			input_select[3]	<=	next_row + 'd3;
-			input_select[4]	<=	next_row + 'd4;
+			input_select[0]	<=	'd0;
+			input_select[1]	<=	'd0;
+			input_select[2]	<=	'd0;
+			input_select[3]	<=	'd0;
+			input_select[4]	<=	'd0;
+			input_select[5]	<=	'd0;
+			input_select[6]	<=	'd0;
 		end
-		else if(kernel_size == 'd7)
+		else
 		begin
-			input_select[5]	<=	next_row + 'd5;
-			input_select[6]	<=	next_row + 'd6;
+			input_select[0]	<=	next_row;
+			input_select[1]	<=	next_row + 'd1;
+			input_select[2]	<=	next_row + 'd2;
+			if(kernel_size == 'd5)
+			begin
+				input_select[3]	<=	next_row + 'd3;
+				input_select[4]	<=	next_row + 'd4;
+			end
+			else if(kernel_size == 'd7)
+			begin
+				input_select[5]	<=	next_row + 'd5;
+				input_select[6]	<=	next_row + 'd6;
+			end
+			mem_access_input_select[0]	<=	input_select[0];
+			mem_access_input_select[1]	<=	input_select[1];
+			mem_access_input_select[2]	<=	input_select[2];
+			mem_access_input_select[3]	<=	input_select[3];
+			mem_access_input_select[4]	<=	input_select[4];
+			mem_access_input_select[5]	<=	input_select[5];
+			mem_access_input_select[6]	<=	input_select[6];
+			mem_data_input_select[0]	<=	mem_access_input_select[0];
+			mem_data_input_select[1]	<=	mem_access_input_select[1];
+			mem_data_input_select[2]	<=	mem_access_input_select[2];
+			mem_data_input_select[3]	<=	mem_access_input_select[3];
+			mem_data_input_select[4]	<=	mem_access_input_select[4];
+			mem_data_input_select[5]	<=	mem_access_input_select[5];
+			mem_data_input_select[6]	<=	mem_access_input_select[6];
 		end
-		mem_access_input_select[0]	<=	input_select[0];
-		mem_access_input_select[1]	<=	input_select[1];
-		mem_access_input_select[2]	<=	input_select[2];
-		mem_access_input_select[3]	<=	input_select[3];
-		mem_access_input_select[4]	<=	input_select[4];
-		mem_access_input_select[5]	<=	input_select[5];
-		mem_access_input_select[6]	<=	input_select[6];
-		mem_data_input_select[0]	<=	mem_access_input_select[0];
-		mem_data_input_select[1]	<=	mem_access_input_select[1];
-		mem_data_input_select[2]	<=	mem_access_input_select[2];
-		mem_data_input_select[3]	<=	mem_access_input_select[3];
-		mem_data_input_select[4]	<=	mem_access_input_select[4];
-		mem_data_input_select[5]	<=	mem_access_input_select[5];
-		mem_data_input_select[6]	<=	mem_access_input_select[6];
+		
 	end
 
 	//input_SRAM_A
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -659,7 +782,7 @@ module controller(
 	end
 
 	//input_SRAM control
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -714,11 +837,11 @@ module controller(
 	always_comb
 	begin
 		if(kernel_size == 'd3)
-			filter_times = 	6'd1;
+			filter_times = 	6'd0;
 		else if(kernel_size == 'd5)
 			filter_times = 	6'd2;
 	end
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 			filter_times_now   <=	6'd0;
@@ -730,7 +853,7 @@ module controller(
 			begin
 				if(kernel_size == 'd3)
 				begin
-					if(cur_col == 6'd0 && cur_row == 6'd0 )
+					if(cur_col == (col_end-'d2) && cur_row == (row_end-'d2))
 						filter_times_now <= filter_times_now + 1;
 					else
 						filter_times_now <= filter_times_now;
@@ -749,21 +872,25 @@ module controller(
 	end
 
 	//tile_done
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
 			oversize_part_done	<=	1'b0;
 			tile_done   <=	1'b0;
+			state_done	<=	1'b0;
 		end
 		else if(cur_state == IDLE)
 		begin
 			oversize_part_done	<=	1'b0;
 			tile_done   <=	1'b0;
+			state_done	<=	1'b0;
 		end
 		else if(kernel_size == 'd3)
 		begin
 			if(filter_times_now > filter_times)
+				state_done	<=	1'b1;
+			if(filter_times_now > filter_times && PE_out_row == 1'b0 && PE_out_col == 1'b0)
 				tile_done   <=	1'b1;
 		end
 		else if(kernel_size == 'd5)
@@ -774,13 +901,18 @@ module controller(
 				oversize_part_done   <=	1'b0;
 			if(filter_times_now > filter_times && oversize_count == 'b10)
 				tile_done   <=	1'b1;
+			if(filter_times_now > filter_times && oversize_count == 'b10)
+				state_done   <=	1'b1;
 		end
 		else 
+		begin
 			tile_done	<=	tile_done;
+			state_done	<=	state_done;
+		end
 	end			
 
 	//weight_SRAM_A
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -821,7 +953,7 @@ module controller(
 	end
 
 	//weight_SRAM control
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -861,16 +993,29 @@ module controller(
 	end
 
 	// may have some problem
-	assign output_SRAM_AB_prdict = (cur_row << 5) + (cur_row << 4) + (cur_row << 3) + (cur_row << 2) + (cur_row << 1) + cur_col;
-	// always_comb
-	// begin
-	// 	if(kernel_size == 'd3)
-	// 		output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
-	// 	else if(kernel_size == 'd5)
-	// 		output_SRAM_AB_prdict	=	cur_row	* 'd60 + cur_col;
-	// end
+	//assign output_SRAM_AB_prdict = (cur_row << 5) + (cur_row << 4) + (cur_row << 3) + (cur_row << 2) + (cur_row << 1) + cur_col;
+	always_comb
+	begin
+		if(kernel_size == 'd3)
+		begin
+			if(pooling_enable)
+			begin
+				if(pooling_delay == 1'b1)
+					output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
+				else
+				begin
+					if(cur_row[0] == 1'b1 && cur_col[0] == 1'b1)
+						output_SRAM_AB_prdict	=	cur_row[5:1] * 'd62 + cur_col[5:1];
+				end
+			end
+			else
+				output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
+		end
+		else if(kernel_size == 'd5)
+			output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
+	end
 	//output_SRAM_AB
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -905,7 +1050,7 @@ module controller(
 		end  
 	end
 	//output_SRAM_AA
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -914,22 +1059,64 @@ module controller(
 		end
 		else if(kernel_size == 3)
 		begin
-			foreach(output_SRAM_AA[i])
-				output_SRAM_AA[i]	<=	output_sram_addr[i];
-			foreach(output_SRAM_WEN[i])
-				output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
+			if(pooling_enable)
+			begin
+				if(pooling_delay == 1'b1)
+				begin
+					if(PE_out_col[0] == 1'b1)
+					begin
+						if(PE_out_row[0] == 1'b1)
+						begin
+							foreach(output_SRAM_AA[i])
+								output_SRAM_AA[i]	<=	(PE_out_row[5:1] * 'd62) + (PE_out_col[5:1]);
+							foreach(output_SRAM_WEN[i])
+								output_SRAM_WEN[i]	<=	(PE_done[i]||PE_out_col!='b0)?'b0:'b1;
+						end
+						else
+						begin
+							foreach(output_SRAM_AA[i])
+								output_SRAM_AA[i]	<=	(PE_out_row[5:1] * 'd62) + (PE_out_col[5:1]);
+							foreach(output_SRAM_WEN[i])
+								output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
+						end
+					end
+				end
+				// if(PE_out_col[0] == 'b1 && pooling_delay == 1'b1)
+				// begin
+				// 	foreach(output_SRAM_AA[i])
+				// 		output_SRAM_AA[i]	<=	(PE_out_row * 'd62) + (PE_out_col >> 'd1);
+				// 	foreach(output_SRAM_WEN[i])
+				// 		output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
+				// end
+				else
+				begin
+					foreach(output_SRAM_WEN[i])
+						output_SRAM_WEN[i]	<=	'b1;
+				end
+			end
+			else
+			begin
+				foreach(output_SRAM_AA[i])
+					output_SRAM_AA[i]	<=	(PE_out_row * 'd62) + PE_out_col;
+				// foreach(output_SRAM_AA[i])
+				// 	output_SRAM_AA[i]	<=	output_sram_addr[i];
+				foreach(output_SRAM_WEN[i])
+					output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
+			end
 		end
 		else if(kernel_size == 5)
 		begin
 			foreach(output_SRAM_AA[i])
-				output_SRAM_AA[i]	<=	output_sram_addr[i];
+				output_SRAM_AA[i]	<=	(PE_out_row * 'd62) + PE_out_col;
+			// foreach(output_SRAM_AA[i])
+			// 	output_SRAM_AA[i]	<=	output_sram_addr[i];
 			foreach(output_SRAM_WEN[i])
 				output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
 		end  
 	end
 
 	//output_SRAM_DI
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -938,8 +1125,47 @@ module controller(
 		end
 		else if(kernel_size == 3)
 		begin
-			foreach(output_SRAM_DI[i])
-				output_SRAM_DI[i]	<=	PE_data_psum_out[i];
+			if(pooling_enable)
+			begin
+				if(PE_out_col[0] == 'b1 && pooling_delay == 1'b1)
+				begin
+					if(PE_out_row[0] == 1'b0)
+					begin
+						foreach(output_SRAM_DI[i])
+						begin
+							if($signed(PE_data_psum_out[i]) > $signed(max_pooling_buffer1[i]))
+								output_SRAM_DI[i]	<=	PE_data_psum_out[i];
+							else
+								output_SRAM_DI[i]	<=	max_pooling_buffer1[i];
+						end
+					end
+					else
+					begin
+						foreach(output_SRAM_DI[i])
+						begin
+							if($signed(PE_data_psum_out[i]) > $signed(max_pooling_buffer1[i]))
+							begin
+								if($signed(max_pooling_buffer3[i]) > $signed(PE_data_psum_out[i]))
+									output_SRAM_DI[i]	<=	max_pooling_buffer3[i];
+								else
+									output_SRAM_DI[i]	<=	PE_data_psum_out[i];
+							end
+							else
+							begin
+								if($signed(max_pooling_buffer3[i]) > $signed(max_pooling_buffer1[i]))
+									output_SRAM_DI[i]	<=	max_pooling_buffer3[i];
+								else
+									output_SRAM_DI[i]	<=	max_pooling_buffer1[i];
+							end
+						end
+					end
+				end
+			end
+			else
+			begin
+				foreach(output_SRAM_DI[i])
+					output_SRAM_DI[i]	<=	PE_data_psum_out[i];
+			end
 		end 
 		else if(kernel_size == 5)
 		begin
@@ -949,7 +1175,7 @@ module controller(
 	end
 
 	//output_SRAM control
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -980,7 +1206,7 @@ module controller(
 		end 
 	end
 	//output_SRAM_addr_write
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 			output_SRAM_addr_write	<=	12'b0;
@@ -996,8 +1222,50 @@ module controller(
 		end
 	end
 
+	//max_pooling_buffer1
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+		begin
+			foreach(max_pooling_buffer1[i])
+				max_pooling_buffer1[i]	<=	'b0;
+		end
+		else if(pooling_enable == 1'b1 )
+		begin
+			if(pooling_delay == 1'b1 && PE_out_col[0] == 1'b0)
+			begin
+				foreach(max_pooling_buffer1[i])
+					max_pooling_buffer1[i]	<=	PE_data_psum_out[i];
+			end
+		end
+	end
+
+	//pooling_delay
+	always_ff @(posedge clk, posedge rst)
+	begin
+		if(rst)
+			pooling_delay	<=	1'b0;
+		else if(pooling_enable)
+		begin
+			if(kernel_size == 'd3)
+			begin
+				if(cur_state == S1)
+				begin
+					pooling_delay	<=	~pooling_delay;
+				end
+				else
+				begin
+					if(PE_out_col!='b0 && PE_out_row!= 'b0)
+						pooling_delay	<=	~pooling_delay;
+					else
+						pooling_delay	<=	1'b0;
+				end
+			end
+		end
+	end
+
 	//PE_psum_addr
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -1011,13 +1279,13 @@ module controller(
 			foreach(PE_psum_addr[i])
 				PE_psum_addr[i]	<=	mem_data_addr[i];
 			foreach(mem_data_addr[i])
-				mem_data_addr[i]<=output_SRAM_addr_write;
+				mem_data_addr[i]<=	output_SRAM_addr_write;
 		end
 	end
 
 	//PE data
 	//weight
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -1031,20 +1299,41 @@ module controller(
 		begin
 			if(kernel_size == 'd3)
 			begin
-				if(cur_state == S1 && mem_access_col == 'b1 && mem_access_row =='b0)
+				if(pooling_enable)
 				begin
-					foreach(PE_data_weight[i])
+					if(cur_state == S1 && mem_access_col == 'b0 && mem_access_row =='b0)
 					begin
-						PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-						PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-						PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-						PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-						PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-						PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-						PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-						PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-						PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
-					end	
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
+							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
+							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
+							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
+							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
+							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
+							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
+							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
+							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+						end	
+					end
+				end
+				else 
+				begin
+					if(cur_state == S1 && mem_access_col == 'b1 && mem_access_row =='b0)
+					begin
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
+							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
+							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
+							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
+							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
+							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
+							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
+							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
+							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+						end	
+					end
 				end
 			end
 			else if(kernel_size == 'd5)
@@ -1089,7 +1378,7 @@ module controller(
 
 
 	//data_buffer
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -1098,9 +1387,9 @@ module controller(
 		end
 		else
 		begin
-			if(kernel_size == 'd3)
+			if(kernel_size == 'd3 && ((pooling_enable=='b1 && pooling_delay)||(pooling_enable=='b0)))
 			begin
-				if(stride == 'd1)
+				if(stride == 'd1 )
 				begin
 					case(mem_data_col[1:0])
 						2'b00:
@@ -1518,12 +1807,12 @@ module controller(
 
 
 	//input
-	// always_ff  @(posedge clk)
+	// always_ff @(posedge clk)
 	// begin
 	// 	predict_tmp3	<=	mem_data_row[2:0];
 	// end
 	assign predict_tmp3 = mem_data_row[2:0];
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -1534,7 +1823,7 @@ module controller(
 		begin
 			if(kernel_size == 'd3)
 			begin
-				if(stride == 'd1)
+				if(stride == 'd1 && ((pooling_enable=='b1 && pooling_delay)||(pooling_enable=='b0)))
 				begin
 					case (mem_data_col[1:0])
 						2'b00	:
@@ -1826,12 +2115,14 @@ module controller(
 		end
 	end
 	//psum
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
 			foreach(PE_data_pre_psum[i])
 				PE_data_pre_psum[i]	<=	32'b0;
+			foreach(PE_data_pre_psum[i])
+				max_pooling_buffer2[i]	<=	32'b0;
 		end
 		else if((act_cur_channel == 1'b0 && oversize_count == 1'b0) || cur_state == IDLE)
 		begin
@@ -1840,13 +2131,34 @@ module controller(
 		end
 		else
 		begin
-			foreach(PE_data_pre_psum[i])
-				PE_data_pre_psum[i] <= output_SRAM_DO[i];
+			if(pooling_enable)
+			begin
+				if(pooling_delay == 1'b1)
+				begin
+					foreach(PE_data_pre_psum[i])
+						PE_data_pre_psum[i] <= output_SRAM_DO[i];
+				end
+				else
+				begin
+					if(mem_access_col[0] == 1'b1 || PE_add_col == 'd49)
+					begin
+						foreach(max_pooling_buffer2[i])
+							max_pooling_buffer2[i]	<=	output_SRAM_DO[i];
+						foreach(max_pooling_buffer2[i])
+							max_pooling_buffer3[i]	<=	max_pooling_buffer2[i];
+					end
+				end
+			end
+			else
+			begin
+				foreach(PE_data_pre_psum[i])
+					PE_data_pre_psum[i] <= output_SRAM_DO[i];
+			end
 		end
 	end
 	
 	//PE control
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -1859,7 +2171,7 @@ module controller(
 		end
 		else if(kernel_size == 'd3)
 		begin
-			if(mem_access_state == S1 && cur_state != IDLE)// && cur_state == S1)
+			if((mem_access_state == S1 && cur_state != IDLE) || (pooling_enable && PE_out_col!='b0 && PE_out_row!='b0))// && cur_state == S1)
 			begin
 				read_input_enable	<=	1'b1;
 				read_weight_enable	<=	1'b1;
@@ -1896,7 +2208,7 @@ module controller(
 	end
 
 	//pipeline state
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
@@ -1911,31 +2223,55 @@ module controller(
 	end
 
 	//pipeline col row
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
 			mem_access_row	<=	5'd0;
 			mem_data_row	<=	5'd0;
+			PE_row			<=	5'd0;
+			PE_mult_row		<=	5'd0;
+			PE_add_row		<=	5'd0;
+			PE_out_row		<=	5'd0;
 			mem_access_col	<=	5'd0;
 			mem_data_col	<=	5'd0;
+			PE_col			<=	5'd0;
+			PE_mult_col		<=	5'd0;
+			PE_add_col		<=	5'd0;
+			PE_out_col		<=	5'd0;
 		end
 		else 
 		begin
 			mem_access_row	<=	cur_row;
 			mem_data_row	<=	mem_access_row;
+			PE_row			<=	mem_data_row;
+			PE_mult_row		<=	PE_row;
+			PE_add_row		<=	PE_mult_row;
+			PE_out_row		<=	PE_add_row;
 			mem_access_col	<=	cur_col;
 			mem_data_col	<=	mem_access_col;
+			PE_col			<=	mem_data_col;
+			PE_mult_col		<=	PE_col;
+			PE_add_col		<=	PE_mult_col;
+			PE_out_col		<=	PE_add_col;
 		end 
 	end
 
 	//rst_PE_reg
-	always_ff  @(posedge clk, posedge rst)
+	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 			rst_PE_reg	<=	1'b0;
 		else if(cur_state == IDLE)
-			rst_PE_reg	<=	1'b1;
+		begin
+			if(pooling_enable)
+			begin
+				if(pooling_delay == 'b1)
+					rst_PE_reg	<=	1'b1;
+			end
+			else
+				rst_PE_reg	<=	1'b1;
+		end
 		else
 			rst_PE_reg	<=	1'b0;
 	end
@@ -2020,7 +2356,7 @@ endmodule
 // 	end
 	
 // 	//PE control
-// 	always_ff  @(posedge clk, posedge rst)
+// 	always_ff @(posedge clk, posedge rst)
 // 	begin
 // 		if(rst)
 // 		begin

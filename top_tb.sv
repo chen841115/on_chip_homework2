@@ -91,6 +91,7 @@ module top_tb;
         channel = 256;
 		map_size = 52;
 		ouput_map_size = 50;
+		pooling = 0;
 		run = 0;
 
 
@@ -118,14 +119,15 @@ module top_tb;
     end
 
 	initial begin
-        //#(`CYCLE*10000000)
-		#(`CYCLE*10000000)
-		//#(`CYCLE*6000000)
-		//#(`CYCLE*900000)
-		//h = 50 * 50 * 128;
-		h = 50*50 + 50*50*63;//*50*32;
+        #(`CYCLE*10000000)
+		//#(`CYCLE*10000000)
+		//#(`CYCLE*4100000)
+		//#(`CYCLE*600000)
+		//h = 50 * 50 * 32;
+		h = 50 * 50 * 64 ;//*50 + 50*50*15;//*50*32;
 		num = 0;
 		gf = $fopen({prog_path, "model1/layer6/output.txt"}, "r");
+		//gf = $fopen({prog_path, "model1/layer7/output_max_pooling.txt"}, "r");
         while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);
@@ -161,6 +163,7 @@ module top_tb;
 			if (`mem_word(`OUTPUT_START + i) !== GOLDEN[i])
 			begin
 				$display("DRAM[%8d] = %h, expect = %h", i, `mem_word(`OUTPUT_START + i), GOLDEN[i]);
+				//$display("DRAM[%8d] = %4d, expect = %4d", i, `mem_word(`OUTPUT_START + i), GOLDEN[i]);
 				err = err + 1;
 			end
 			else

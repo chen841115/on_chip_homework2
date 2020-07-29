@@ -161,6 +161,8 @@ module top(
 	logic	[12:0]	SRAM_ADDR_start_write;
 	logic	buffer2sram_input_start;
 	logic	buffer2sram_input_done;
+	//pooling_enable
+	logic	pooling_enable;
 	
 
     //assign  DMA_start	=   1'b1;
@@ -241,6 +243,7 @@ module top(
         .tile_done(tile_done),
 		.act_cur_channel(act_cur_channel),
 		.cur_channel(cur_channel),
+		.pooling_enable(pooling_enable),
         //SRAM
         //output_SRAM
         .output_SRAM_DI(output_SRAM_DI),
@@ -351,6 +354,7 @@ module top(
 		.controller_run(controller_run),
 		.act_cur_channel(act_cur_channel),
 		.cur_channel(cur_channel),
+		.pooling_enable(pooling_enable),
 	    //DMA
 	    .DRAM_ADDR_start(DRAM_ADDR_start),
 	    .DRAM_ADDR_end(DRAM_ADDR_end),
@@ -379,6 +383,7 @@ module top(
 		.channel(channel),
 		.map_size(map_size),
 		.ouput_map_size(ouput_map_size),
+		.pooling(pooling),
 		//signal for buffer to sram
 		.input_SRAM_ready(input_SRAM_ready),
 		.controller_cur_row(controller_cur_row),
