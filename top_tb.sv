@@ -85,12 +85,12 @@ module top_tb;
         // channel = 3;
 		// map_size = 416;
 		// ouput_map_size = 414;
-		kernel_size = 3;
+		kernel_size = 5;
         stride = 1;
-        kernel_num = 64;
-        channel = 256;
+        kernel_num = 32;
+        channel = 3;
 		map_size = 52;
-		ouput_map_size = 50;
+		ouput_map_size = 48;
 		pooling = 0;
 		run = 0;
 
@@ -103,10 +103,10 @@ module top_tb;
         // $readmemh({prog_path, "/test1.hex"}, DRAM_1.Memory_byte1);
         // $readmemh({prog_path, "/test2.hex"}, DRAM_1.Memory_byte2);
         // $readmemh({prog_path, "/test3.hex"}, DRAM_1.Memory_byte3);
-		$readmemh({prog_path, "model1/layer6/input0.hex"}, DRAM_1.Memory_byte0);
-        $readmemh({prog_path, "model1/layer6/input1.hex"}, DRAM_1.Memory_byte1);
-        $readmemh({prog_path, "model1/layer6/input2.hex"}, DRAM_1.Memory_byte2);
-        $readmemh({prog_path, "model1/layer6/input3.hex"}, DRAM_1.Memory_byte3);
+		$readmemh({prog_path, "model2/layer7/input0.hex"}, DRAM_1.Memory_byte0);
+        $readmemh({prog_path, "model2/layer7/input1.hex"}, DRAM_1.Memory_byte1);
+        $readmemh({prog_path, "model2/layer7/input2.hex"}, DRAM_1.Memory_byte2);
+        $readmemh({prog_path, "model2/layer7/input3.hex"}, DRAM_1.Memory_byte3);
         #(`CYCLE*10) run = 0;
         //#(`CYCLE*5000) $finish;
     end
@@ -119,15 +119,15 @@ module top_tb;
     end
 
 	initial begin
-        #(`CYCLE*10000000)
+        //#(`CYCLE*10000000)
 		//#(`CYCLE*10000000)
 		//#(`CYCLE*4100000)
-		//#(`CYCLE*600000)
-		//h = 50 * 50 * 32;
-		h = 50 * 50 * 64 ;//*50 + 50*50*15;//*50*32;
+		#(`CYCLE*600000)
+		h = 48 * 48 * 32;
+		//h = 48 * 2;//48 * 32 ;//*50 + 50*50*15;//*50*32;
 		num = 0;
-		gf = $fopen({prog_path, "model1/layer6/output.txt"}, "r");
-		//gf = $fopen({prog_path, "model1/layer7/output_max_pooling.txt"}, "r");
+		gf = $fopen({prog_path, "model2/layer7/output.txt"}, "r");
+		//gf = $fopen({prog_path, "model2/layer7/output_max_pooling.txt"}, "r");
         while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);

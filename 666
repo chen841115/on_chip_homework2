@@ -1400,20 +1400,20 @@ module controller(
 						begin
 							if(mem_access_col == 6'b0)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_access_input_select[0]][127:96];
+								data_buffer[1]	<=	input_SRAM_DO[mem_access_input_select[0]][95:64];
+								data_buffer[2]	<=	input_SRAM_DO[mem_access_input_select[0]][63:32];
+								data_buffer[3]	<=	input_SRAM_DO[mem_access_input_select[0]][31:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_access_input_select[1]][127:96];
+								data_buffer[7]	<=	input_SRAM_DO[mem_access_input_select[1]][95:64];
+								data_buffer[8]	<=	input_SRAM_DO[mem_access_input_select[1]][63:32];
+								data_buffer[9]	<=	input_SRAM_DO[mem_access_input_select[1]][31:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_access_input_select[2]][127:96];
+								data_buffer[13]	<=	input_SRAM_DO[mem_access_input_select[2]][95:64];
+								data_buffer[14]	<=	input_SRAM_DO[mem_access_input_select[2]][63:32];
+								data_buffer[15]	<=	input_SRAM_DO[mem_access_input_select[2]][31:0];
 							end
 							else
 							begin
@@ -1451,24 +1451,24 @@ module controller(
 						begin
 							data_buffer[0]	<=	data_buffer[1];
 							data_buffer[1]	<=	data_buffer[2];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+							data_buffer[2]	<=	input_SRAM_DO[mem_access_input_select[0]][127:96];
+							data_buffer[3]	<=	input_SRAM_DO[mem_access_input_select[0]][95:64];
+							data_buffer[4]	<=	input_SRAM_DO[mem_access_input_select[0]][63:32];
+							data_buffer[5]	<=	input_SRAM_DO[mem_access_input_select[0]][31:0];
 
 							data_buffer[6]	<=	data_buffer[7];
 							data_buffer[7]	<=	data_buffer[8];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+							data_buffer[8]	<=	input_SRAM_DO[mem_access_input_select[1]][127:96];
+							data_buffer[9]	<=	input_SRAM_DO[mem_access_input_select[1]][95:64];
+							data_buffer[10]	<=	input_SRAM_DO[mem_access_input_select[1]][63:32];
+							data_buffer[11]	<=	input_SRAM_DO[mem_access_input_select[1]][31:0];
 
 							data_buffer[12]	<=	data_buffer[13];
 							data_buffer[13]	<=	data_buffer[14];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+							data_buffer[14]	<=	input_SRAM_DO[mem_access_input_select[2]][127:96];
+							data_buffer[15]	<=	input_SRAM_DO[mem_access_input_select[2]][95:64];
+							data_buffer[16]	<=	input_SRAM_DO[mem_access_input_select[2]][63:32];
+							data_buffer[17]	<=	input_SRAM_DO[mem_access_input_select[2]][31:0];
 						end
 						2'b11:
 						begin
@@ -1504,30 +1504,30 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_access_input_select[0]][127:96];
+									data_buffer[1]	<=	input_SRAM_DO[mem_access_input_select[0]][95:64];
+									data_buffer[2]	<=	input_SRAM_DO[mem_access_input_select[0]][63:32];
+									data_buffer[3]	<=	input_SRAM_DO[mem_access_input_select[0]][31:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_access_input_select[1]][127:96];
+									data_buffer[7]	<=	input_SRAM_DO[mem_access_input_select[1]][95:64];
+									data_buffer[8]	<=	input_SRAM_DO[mem_access_input_select[1]][63:32];
+									data_buffer[9]	<=	input_SRAM_DO[mem_access_input_select[1]][31:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_access_input_select[2]][127:96];
+									data_buffer[13]	<=	input_SRAM_DO[mem_access_input_select[2]][95:64];
+									data_buffer[14]	<=	input_SRAM_DO[mem_access_input_select[2]][63:32];
+									data_buffer[15]	<=	input_SRAM_DO[mem_access_input_select[2]][31:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_access_input_select[3]][127:96];
+									data_buffer[19]	<=	input_SRAM_DO[mem_access_input_select[3]][95:64];
+									data_buffer[20]	<=	input_SRAM_DO[mem_access_input_select[3]][63:32];
+									data_buffer[21]	<=	input_SRAM_DO[mem_access_input_select[3]][31:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_access_input_select[4]][127:96];
+									data_buffer[25]	<=	input_SRAM_DO[mem_access_input_select[4]][95:64];
+									data_buffer[26]	<=	input_SRAM_DO[mem_access_input_select[4]][63:32];
+									data_buffer[27]	<=	input_SRAM_DO[mem_access_input_select[4]][31:0];
 								end
 								else
 								begin
@@ -1608,7 +1608,7 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									if(mem_access_oversize_first == 'b1)
+									if(mem_data_oversize_first == 'b1)
 									begin
 										data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
 										data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
@@ -1943,283 +1943,238 @@ module controller(
 			begin
 				if(stride == 'd1 && ((pooling_enable=='b1 && pooling_delay)||(pooling_enable=='b0)))
 				begin
-					// case (mem_data_col[1:0])
-					// 	2'b00	:
-					// 	begin
-					// 		if(mem_data_col == 6'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[2];
-					// 			PE_data_input[3]	<=	data_buffer[6];
-					// 			PE_data_input[4]	<=	data_buffer[7];
-					// 			PE_data_input[5]	<=	data_buffer[8];
-					// 			PE_data_input[6]	<=	data_buffer[12];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[2];
-					// 			PE_data_input[3]	<=	data_buffer[6];
-					// 			PE_data_input[4]	<=	data_buffer[7];
-					// 			PE_data_input[5]	<=	data_buffer[8];
-					// 			PE_data_input[6]	<=	data_buffer[12];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 	end
-					// 	2'b01	:
-					// 	begin
-					// 		PE_data_input[0]	<=	data_buffer[0];
-					// 		PE_data_input[1]	<=	data_buffer[1];
-					// 		PE_data_input[2]	<=	data_buffer[2];
-					// 		PE_data_input[3]	<=	data_buffer[6];
-					// 		PE_data_input[4]	<=	data_buffer[7];
-					// 		PE_data_input[5]	<=	data_buffer[8];
-					// 		PE_data_input[6]	<=	data_buffer[12];
-					// 		PE_data_input[7]	<=	data_buffer[13];
-					// 		PE_data_input[8]	<=	data_buffer[14];
-					// 	end
-					// 	2'b10	:
-					// 	begin
-					// 		PE_data_input[0]	<=	data_buffer[0];
-					// 		PE_data_input[1]	<=	data_buffer[1];
-					// 		PE_data_input[2]	<=	data_buffer[2];
-					// 		PE_data_input[3]	<=	data_buffer[6];
-					// 		PE_data_input[4]	<=	data_buffer[7];
-					// 		PE_data_input[5]	<=	data_buffer[8];
-					// 		PE_data_input[6]	<=	data_buffer[12];
-					// 		PE_data_input[7]	<=	data_buffer[13];
-					// 		PE_data_input[8]	<=	data_buffer[14];
-					// 	end
-					// 	2'b11	:
-					// 	begin
-					// 		PE_data_input[0]	<=	data_buffer[0];
-					// 		PE_data_input[1]	<=	data_buffer[1];
-					// 		PE_data_input[2]	<=	data_buffer[2];
-					// 		PE_data_input[3]	<=	data_buffer[6];
-					// 		PE_data_input[4]	<=	data_buffer[7];
-					// 		PE_data_input[5]	<=	data_buffer[8];
-					// 		PE_data_input[6]	<=	data_buffer[12];
-					// 		PE_data_input[7]	<=	data_buffer[13];
-					// 		PE_data_input[8]	<=	data_buffer[14];
-					// 	end
-					// 	default	:
-					// 	begin
-					// 		foreach(PE_data_input[i])
-					// 			PE_data_input[i]	<=	32'b0;
-					// 	end
-					// endcase
-					PE_data_input[0]	<=	data_buffer[0];
-					PE_data_input[1]	<=	data_buffer[1];
-					PE_data_input[2]	<=	data_buffer[2];
-					PE_data_input[3]	<=	data_buffer[6];
-					PE_data_input[4]	<=	data_buffer[7];
-					PE_data_input[5]	<=	data_buffer[8];
-					PE_data_input[6]	<=	data_buffer[12];
-					PE_data_input[7]	<=	data_buffer[13];
-					PE_data_input[8]	<=	data_buffer[14];
+					case (mem_data_col[1:0])
+						2'b00	:
+						begin
+							if(mem_data_col == 6'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[2];
+								PE_data_input[3]	<=	data_buffer[6];
+								PE_data_input[4]	<=	data_buffer[7];
+								PE_data_input[5]	<=	data_buffer[8];
+								PE_data_input[6]	<=	data_buffer[12];
+								PE_data_input[7]	<=	data_buffer[13];
+								PE_data_input[8]	<=	data_buffer[14];
+							end
+							else
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[2];
+								PE_data_input[3]	<=	data_buffer[6];
+								PE_data_input[4]	<=	data_buffer[7];
+								PE_data_input[5]	<=	data_buffer[8];
+								PE_data_input[6]	<=	data_buffer[12];
+								PE_data_input[7]	<=	data_buffer[13];
+								PE_data_input[8]	<=	data_buffer[14];
+							end
+						end
+						2'b01	:
+						begin
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[1];
+							PE_data_input[2]	<=	data_buffer[2];
+							PE_data_input[3]	<=	data_buffer[6];
+							PE_data_input[4]	<=	data_buffer[7];
+							PE_data_input[5]	<=	data_buffer[8];
+							PE_data_input[6]	<=	data_buffer[12];
+							PE_data_input[7]	<=	data_buffer[13];
+							PE_data_input[8]	<=	data_buffer[14];
+						end
+						2'b10	:
+						begin
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[1];
+							PE_data_input[2]	<=	data_buffer[2];
+							PE_data_input[3]	<=	data_buffer[6];
+							PE_data_input[4]	<=	data_buffer[7];
+							PE_data_input[5]	<=	data_buffer[8];
+							PE_data_input[6]	<=	data_buffer[12];
+							PE_data_input[7]	<=	data_buffer[13];
+							PE_data_input[8]	<=	data_buffer[14];
+						end
+						2'b11	:
+						begin
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[1];
+							PE_data_input[2]	<=	data_buffer[2];
+							PE_data_input[3]	<=	data_buffer[6];
+							PE_data_input[4]	<=	data_buffer[7];
+							PE_data_input[5]	<=	data_buffer[8];
+							PE_data_input[6]	<=	data_buffer[12];
+							PE_data_input[7]	<=	data_buffer[13];
+							PE_data_input[8]	<=	data_buffer[14];
+						end
+						default	:
+						begin
+							foreach(PE_data_input[i])
+								PE_data_input[i]	<=	32'b0;
+						end
+					endcase
 				end
 			end
 			else if(kernel_size == 'd5)
 			begin
 				if(stride == 'd1)
 				begin
-					// case (mem_data_col[1:0])
-					// 	2'b00:
-					// 	begin
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	end
-					// 	2'b01:
-					// 	begin
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	end
-					// 	2'b10:
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	2'b11:
-					// 	begin
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	end
-					// endcase
-					if(oversize_count == 'b0)
-					begin
-						PE_data_input[0]	<=	data_buffer[0];
-						PE_data_input[1]	<=	data_buffer[6];
-						PE_data_input[2]	<=	data_buffer[12];
-						PE_data_input[3]	<=	data_buffer[18];
-						PE_data_input[4]	<=	data_buffer[24];
-						PE_data_input[5]	<=	data_buffer[1];
-						PE_data_input[6]	<=	data_buffer[7];
-						PE_data_input[7]	<=	data_buffer[13];
-						PE_data_input[8]	<=	data_buffer[19];
-					end
-					else if(oversize_count == 'b1)
-					begin
-						PE_data_input[0]	<=	data_buffer[24];
-						PE_data_input[1]	<=	data_buffer[1];
-						PE_data_input[2]	<=	data_buffer[7];
-						PE_data_input[3]	<=	data_buffer[13];
-						PE_data_input[4]	<=	data_buffer[19];
-						PE_data_input[5]	<=	data_buffer[25];
-						PE_data_input[6]	<=	data_buffer[2];
-						PE_data_input[7]	<=	data_buffer[8];
-						PE_data_input[8]	<=	data_buffer[14];
-					end
-					else if(oversize_count == 'b10)
-					begin
-						PE_data_input[0]	<=	data_buffer[18];
-						PE_data_input[1]	<=	data_buffer[24];
-						PE_data_input[2]	<=	data_buffer[1];
-						PE_data_input[3]	<=	data_buffer[7];
-						PE_data_input[4]	<=	data_buffer[13];
-						PE_data_input[5]	<=	data_buffer[19];
-						PE_data_input[6]	<=	data_buffer[25];
-						PE_data_input[7]	<=	32'b0;
-						PE_data_input[8]	<=	32'b0;
-					end
+					case (mem_data_col[1:0])
+						2'b00:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[6];
+								PE_data_input[2]	<=	data_buffer[12];
+								PE_data_input[3]	<=	data_buffer[18];
+								PE_data_input[4]	<=	data_buffer[24];
+								PE_data_input[5]	<=	data_buffer[1];
+								PE_data_input[6]	<=	data_buffer[7];
+								PE_data_input[7]	<=	data_buffer[13];
+								PE_data_input[8]	<=	data_buffer[19];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[24];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[7];
+								PE_data_input[3]	<=	data_buffer[13];
+								PE_data_input[4]	<=	data_buffer[19];
+								PE_data_input[5]	<=	data_buffer[25];
+								PE_data_input[6]	<=	data_buffer[2];
+								PE_data_input[7]	<=	data_buffer[8];
+								PE_data_input[8]	<=	data_buffer[14];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[18];
+								PE_data_input[1]	<=	data_buffer[24];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[7];
+								PE_data_input[4]	<=	data_buffer[13];
+								PE_data_input[5]	<=	data_buffer[19];
+								PE_data_input[6]	<=	data_buffer[25];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
+						end
+						2'b01:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[6];
+								PE_data_input[2]	<=	data_buffer[12];
+								PE_data_input[3]	<=	data_buffer[18];
+								PE_data_input[4]	<=	data_buffer[24];
+								PE_data_input[5]	<=	data_buffer[1];
+								PE_data_input[6]	<=	data_buffer[7];
+								PE_data_input[7]	<=	data_buffer[13];
+								PE_data_input[8]	<=	data_buffer[19];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[24];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[7];
+								PE_data_input[3]	<=	data_buffer[13];
+								PE_data_input[4]	<=	data_buffer[19];
+								PE_data_input[5]	<=	data_buffer[25];
+								PE_data_input[6]	<=	data_buffer[2];
+								PE_data_input[7]	<=	data_buffer[8];
+								PE_data_input[8]	<=	data_buffer[14];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[18];
+								PE_data_input[1]	<=	data_buffer[24];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[7];
+								PE_data_input[4]	<=	data_buffer[13];
+								PE_data_input[5]	<=	data_buffer[19];
+								PE_data_input[6]	<=	data_buffer[25];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
+						end
+						2'b10:
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[6];
+								PE_data_input[2]	<=	data_buffer[12];
+								PE_data_input[3]	<=	data_buffer[18];
+								PE_data_input[4]	<=	data_buffer[24];
+								PE_data_input[5]	<=	data_buffer[1];
+								PE_data_input[6]	<=	data_buffer[7];
+								PE_data_input[7]	<=	data_buffer[13];
+								PE_data_input[8]	<=	data_buffer[19];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[24];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[7];
+								PE_data_input[3]	<=	data_buffer[13];
+								PE_data_input[4]	<=	data_buffer[19];
+								PE_data_input[5]	<=	data_buffer[25];
+								PE_data_input[6]	<=	data_buffer[2];
+								PE_data_input[7]	<=	data_buffer[8];
+								PE_data_input[8]	<=	data_buffer[14];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[18];
+								PE_data_input[1]	<=	data_buffer[24];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[7];
+								PE_data_input[4]	<=	data_buffer[13];
+								PE_data_input[5]	<=	data_buffer[19];
+								PE_data_input[6]	<=	data_buffer[25];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
+						2'b11:
+						begin
+							if(oversize_count == 'b0)
+							begin
+								PE_data_input[0]	<=	data_buffer[0];
+								PE_data_input[1]	<=	data_buffer[6];
+								PE_data_input[2]	<=	data_buffer[12];
+								PE_data_input[3]	<=	data_buffer[18];
+								PE_data_input[4]	<=	data_buffer[24];
+								PE_data_input[5]	<=	data_buffer[1];
+								PE_data_input[6]	<=	data_buffer[7];
+								PE_data_input[7]	<=	data_buffer[13];
+								PE_data_input[8]	<=	data_buffer[19];
+							end
+							else if(oversize_count == 'b1)
+							begin
+								PE_data_input[0]	<=	data_buffer[24];
+								PE_data_input[1]	<=	data_buffer[1];
+								PE_data_input[2]	<=	data_buffer[7];
+								PE_data_input[3]	<=	data_buffer[13];
+								PE_data_input[4]	<=	data_buffer[19];
+								PE_data_input[5]	<=	data_buffer[25];
+								PE_data_input[6]	<=	data_buffer[2];
+								PE_data_input[7]	<=	data_buffer[8];
+								PE_data_input[8]	<=	data_buffer[14];
+							end
+							else if(oversize_count == 'b10)
+							begin
+								PE_data_input[0]	<=	data_buffer[18];
+								PE_data_input[1]	<=	data_buffer[24];
+								PE_data_input[2]	<=	data_buffer[1];
+								PE_data_input[3]	<=	data_buffer[7];
+								PE_data_input[4]	<=	data_buffer[13];
+								PE_data_input[5]	<=	data_buffer[19];
+								PE_data_input[6]	<=	data_buffer[25];
+								PE_data_input[7]	<=	32'b0;
+								PE_data_input[8]	<=	32'b0;
+							end
+						end
+					endcase
 				end
 			end
 		end
