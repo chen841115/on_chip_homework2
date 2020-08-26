@@ -8,7 +8,8 @@ PE: | $(bld_dir)
 	ncverilog ../PE_tb.sv +access+r +incdir+$(root_dir) +prog_path=$(root_dir);
 top : | $(bld_dir)
 	cd $(bld_dir); \
-	ncverilog ../top_tb.sv +access+r +incdir+$(root_dir) +prog_path=$(root_dir);
+	ncverilog ../top_tb.sv +access+r +incdir+$(root_dir)
+	# +prog_path=$(root_dir);
 con : | $(bld_dir)
 	cd $(bld_dir); \
 	ncverilog ../controller_tb.sv +access+r +incdir+$(root_dir) +prog_path=$(root_dir);

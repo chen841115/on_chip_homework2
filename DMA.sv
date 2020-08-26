@@ -38,7 +38,10 @@ module DMA(
 	output_SRAM_OEN_DMA,
 	output_SRAM_CEN_DMA,
 	//conv info
-	kernel_size
+	kernel_size,
+	//filter_parting_size1_times
+	filter_parting_map_times,
+	filter_parting_map_count
 );
     input   clk;
     input   rst;
@@ -46,8 +49,8 @@ module DMA(
     input   [31:0]  DRAM_ADDR_end;
     input   [6:0]	BUF_ADDR_start;
 	input   [6:0]	BUF_ADDR_end;
-	input	[12:0]	WEIGHT_SRAM_ADDR_start;
-	input	[12:0]	WEIGHT_SRAM_ADDR_end;
+	input	[15:0]	WEIGHT_SRAM_ADDR_start;
+	input	[15:0]	WEIGHT_SRAM_ADDR_end;
 	input   [17:0]  Output_SRAM_ADDR_start;
     input   [17:0]  Output_SRAM_ADDR_end;
     input   DMA_start;
@@ -71,10 +74,10 @@ module DMA(
 	output  logic	input_buffer_CEN	[0:1];
 	output  logic	input_buffer_WEN	[0:1]; 
 
-	output  logic	[287:0]	weight_SRAM_DI		[0:31];
-	output  logic	[6:0]	weight_SRAM_A_write	[0:31];
-	output  logic	weight_SRAM_CEN_write		[0:31];
-	output  logic	weight_SRAM_WEN				[0:31]; 
+	output  logic	[287:0]	weight_SRAM_DI		[0:287];
+	output  logic	[6:0]	weight_SRAM_A_write	[0:287];
+	output  logic	weight_SRAM_CEN_write		[0:287];
+	output  logic	weight_SRAM_WEN				[0:287]; 
 
 	//output_sram access
 	output	logic	[11:0]	output_SRAM_AB_DMA	[0:31];
@@ -84,6 +87,10 @@ module DMA(
 
 	//conv info
 	input	[3:0]	kernel_size;
+
+	//filter_parting_size1_times
+	input	[3:0]	filter_parting_map_times;
+	input	[3:0]	filter_parting_map_count;
 
 	logic	[17:0]	cur_addr;
 
@@ -96,7 +103,7 @@ module DMA(
 
     logic   [31:0]  buffer	[0:24];
 	logic	row_change;
-	logic	read_end;
+	logic	read_end,read_end_predict,at_least_one;
 	//DRAM -> weight 
 	logic	[3:0]	DRAM_data_flag;
 	logic	[7:0]	DRAM_data_count;	
@@ -239,23 +246,101 @@ module DMA(
 				if(kernel_size == 'd3)
 				begin
 					if(DRAM_data_count	==	'd9)
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7],buffer[8]};
+					begin
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	buffer[0];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	buffer[1];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	buffer[2];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	buffer[3];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	buffer[4];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	buffer[5];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	buffer[6];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	buffer[7];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	buffer[8];
+					end
 				end
 				else if(kernel_size == 'd5)
 				begin
 					if(DRAM_data_count	==	'd23)
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[2],buffer[7],buffer[12],buffer[17],buffer[22],buffer[3],buffer[8],buffer[13],buffer[18]};
+					begin
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	buffer[2];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	buffer[7];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	buffer[12];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	buffer[17];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	buffer[22];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	buffer[3];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	buffer[8];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	buffer[13];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	buffer[18];
+					end
+						//weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[2],buffer[7],buffer[12],buffer[17],buffer[22],buffer[3],buffer[8],buffer[13],buffer[18]};
 					else if(DRAM_data_count	==	'd24)
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[22],buffer[3],buffer[8],buffer[13],buffer[18],buffer[23],buffer[4],buffer[9],buffer[14]};
+					begin
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	buffer[22];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	buffer[3];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	buffer[8];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	buffer[13];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	buffer[18];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	buffer[23];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	buffer[4];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	buffer[9];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	buffer[14];
+					end
+						//weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[22],buffer[3],buffer[8],buffer[13],buffer[18],buffer[23],buffer[4],buffer[9],buffer[14]};
 					else if(DRAM_data_count	==	'd25)
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[18],buffer[23],buffer[4],buffer[9],buffer[14],buffer[19],buffer[24],32'b0,32'b0};
+					begin
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	buffer[18];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	buffer[23];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	buffer[4];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	buffer[9];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	buffer[14];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	buffer[19];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	buffer[24];
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	'd0;
+					end
+						//weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[18],buffer[23],buffer[4],buffer[9],buffer[14],buffer[19],buffer[24],32'b0,32'b0};
+				end
+				else if(kernel_size == 'd1)
+				begin
+					if(filter_parting_map_times == 'd1)
+					begin
+						if(DRAM_data_count	==	'd1)
+						begin
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7]]	<=	buffer[8];
+						end
+					end
+					else if(filter_parting_map_times == 'd4)
+					begin
+						if(DRAM_data_count	==	'd4)
+						begin
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7]]	<=	buffer[5];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd1]	<=	buffer[6];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd2]	<=	buffer[7];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd3]	<=	buffer[8];
+						end
+					end
+					else if(filter_parting_map_times == 'd9)
+					begin
+						if(DRAM_data_count	==	'd9)
+						begin
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7]]	<=	buffer[0];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd1]	<=	buffer[1];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd2]	<=	buffer[2];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd3]	<=	buffer[3];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd4]	<=	buffer[4];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd5]	<=	buffer[5];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd6]	<=	buffer[6];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd7]	<=	buffer[7];
+							weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[15:7] + 'd8]	<=	buffer[8];
+						end
+					end
 				end
 			end
 		end
 		else
 		begin
 			integer	i;
-			for(i=0;i<32;i++)
+			for(i=0;i<288;i++)
 			begin
 				weight_SRAM_DI[i]	<=	'b0;
 			end
@@ -267,7 +352,7 @@ module DMA(
 		if(rst)
 		begin
 			integer	i;
-			for(i=0;i<32;i++)
+			for(i=0;i<288;i++)
 			begin
 				weight_SRAM_CEN_write[i]	<=	'b1;
 			end
@@ -275,7 +360,7 @@ module DMA(
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
 		begin
 			integer	i;
-			for(i=0;i<32;i++)
+			for(i=0;i<288;i++)
 			begin
 				weight_SRAM_CEN_write[i]	<=	'b0;
 			end
@@ -287,7 +372,7 @@ module DMA(
 		if(rst)
 		begin
 			integer	i;
-			for(i=0;i<32;i++)
+			for(i=0;i<288;i++)
 			begin
 				weight_SRAM_WEN[i]	<=	'b1;
 			end
@@ -304,15 +389,36 @@ module DMA(
 						for(i=0;i<32;i++)
 						begin
 							if(i == WEIGHT_SRAM_ADDR_start[11:7])
-								weight_SRAM_WEN[i]	<=	'b0;
+							begin
+								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b0;
+							end
+								//weight_SRAM_WEN[i]	<=	'b0;
 							else
-								weight_SRAM_WEN[i]	<=	'b1;
+							begin
+								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b1;
+							end
 						end
 					end
 					else
 					begin
 						integer	i;
-						for(i=0;i<32;i++)
+						for(i=0;i<288;i++)
 							weight_SRAM_WEN[i]	<=	'b1;
 					end
 				end
@@ -325,23 +431,127 @@ module DMA(
 						for(i=0;i<32;i++)
 						begin
 							if(i == WEIGHT_SRAM_ADDR_start[11:7])
-								weight_SRAM_WEN[i]	<=	'b0;
+							begin
+								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b0;
+								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b0;
+							end
+								//weight_SRAM_WEN[i]	<=	'b0;
 							else
-								weight_SRAM_WEN[i]	<=	'b1;
+							begin
+								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b1;
+								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b1;
+							end
 						end
 					end
 					else
 					begin
 						integer	i;
-						for(i=0;i<32;i++)
+						for(i=0;i<288;i++)
 							weight_SRAM_WEN[i]	<=	'b1;
+					end
+				end
+				else if(kernel_size == 'd1)
+				begin
+					if(filter_parting_map_times == 'd1)
+					begin
+						if(DRAM_data_count == 'd1)
+						begin
+							integer	i;
+							for(i=0;i<288;i++)
+							begin
+								if(i == WEIGHT_SRAM_ADDR_start[15:7] && read_end_predict == 'b0)
+								begin
+									weight_SRAM_WEN[i]	<=	'b0;
+								end
+								else
+								begin
+									weight_SRAM_WEN[i]	<=	'b1;
+									
+								end
+							end
+						end
+						else
+						begin
+							integer	i;
+							for(i=0;i<288;i++)
+								weight_SRAM_WEN[i]	<=	'b1;
+						end
+					end
+					else if(filter_parting_map_times == 'd4)
+					begin
+						if(DRAM_data_count == 'd4)
+						begin
+							integer	i;
+							for(i=0;i<288;i++)
+							begin
+								if(read_end_predict == 'b0 && (i == WEIGHT_SRAM_ADDR_start[15:7]||i == WEIGHT_SRAM_ADDR_start[15:7]+'d1||
+																i == WEIGHT_SRAM_ADDR_start[15:7]+'d2||i == WEIGHT_SRAM_ADDR_start[15:7]+'d3))
+								begin
+									weight_SRAM_WEN[i]	<=	'b0;
+								end
+								else
+								begin
+									weight_SRAM_WEN[i]	<=	'b1;
+									
+								end
+							end
+						end
+						else
+						begin
+							integer	i;
+							for(i=0;i<288;i++)
+								weight_SRAM_WEN[i]	<=	'b1;
+						end
+					end
+					else if(filter_parting_map_times == 'd9)
+					begin
+						if(DRAM_data_count == 'd9)
+						begin
+							integer	i;
+							for(i=0;i<288;i++)
+							begin
+								if(read_end_predict == 'b0 && (i == WEIGHT_SRAM_ADDR_start[15:7]||i == WEIGHT_SRAM_ADDR_start[15:7]+'d1||
+																i == WEIGHT_SRAM_ADDR_start[15:7]+'d2||i == WEIGHT_SRAM_ADDR_start[15:7]+'d3||
+																i == WEIGHT_SRAM_ADDR_start[15:7]+'d4||i == WEIGHT_SRAM_ADDR_start[15:7]+'d5||
+																i == WEIGHT_SRAM_ADDR_start[15:7]+'d6||i == WEIGHT_SRAM_ADDR_start[15:7]+'d7||
+																i == WEIGHT_SRAM_ADDR_start[15:7]+'d8))
+								begin
+									weight_SRAM_WEN[i]	<=	'b0;
+								end
+								else
+								begin
+									weight_SRAM_WEN[i]	<=	'b1;
+									
+								end
+							end
+						end
+						else
+						begin
+							integer	i;
+							for(i=0;i<288;i++)
+								weight_SRAM_WEN[i]	<=	'b1;
+						end
 					end
 				end
 			end
 			else
 			begin
 				integer	i;
-				for(i=0;i<32;i++)
+				for(i=0;i<288;i++)
 				begin
 					weight_SRAM_WEN[i]	<=	'b1;
 				end
@@ -354,10 +564,11 @@ module DMA(
 		if(rst)
 		begin
 			integer	i;
-			for(i=0;i<32;i++)
+			for(i=0;i<288;i++)
 			begin
-				weight_SRAM_A_write[i]	<=	'b0;
+				weight_SRAM_A_write[i]	<=	'b1111111;
 			end
+			at_least_one	<=	'b0;
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
 		begin
@@ -366,30 +577,119 @@ module DMA(
 				if(kernel_size == 'd3)
 				begin
 					if(DRAM_data_count	==	4'd9)
-						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+					begin
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	cur_addr[6:0];
+						at_least_one	<=	'b1;
+					end
 				end
 				else if(kernel_size == 'd5)
 				begin
 					if(DRAM_data_count	==	'd23)
-						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+					begin
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	cur_addr[6:0];
+					end
 					else if(DRAM_data_count	==	'd24)
-						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+					begin
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	cur_addr[6:0];
+					end
 					else if(DRAM_data_count	==	'd25)
-						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	cur_addr[6:0];
+					begin
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	cur_addr[6:0];
+						weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	cur_addr[6:0];
+						at_least_one	<=	'b1;
+					end
+				end
+				else if(kernel_size == 'd1)
+				begin
+					if(filter_parting_map_times == 'd1)
+					begin
+						if(DRAM_data_count	==	'd1)
+						begin
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7]]	<=	cur_addr[6:0];
+							at_least_one	<=	'b1;
+						end
+					end
+					else if(filter_parting_map_times == 'd4)
+					begin
+						if(DRAM_data_count	==	'd4)
+						begin
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7]]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd1]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd2]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd3]	<=	cur_addr[6:0];
+							at_least_one	<=	'b1;
+						end
+					end
+					else if(filter_parting_map_times == 'd9)
+					begin
+						if(DRAM_data_count	==	'd9)
+						begin
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7]]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd1]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd2]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd3]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd4]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd5]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd6]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd7]	<=	cur_addr[6:0];
+							weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7] + 'd8]	<=	cur_addr[6:0];
+							at_least_one	<=	'b1;
+						end
+					end
 				end
 			end
 			else
 			begin
-				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]]	<=	'b0;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd0]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	'b1111111;
+				weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	'b1111111;
 			end
 		end
 		else if(cur_state == 4'b0000)
 		begin
 			integer	i;
-			for(i=0;i<32;i++)
+			for(i=0;i<288;i++)
 			begin
-				weight_SRAM_A_write[i]	<=	'b0;
+				weight_SRAM_A_write[i]	<=	'b1111111;
 			end
+			at_least_one	<=	'b0;
 		end
 	end
 	//DRAM_data_flag
@@ -498,6 +798,21 @@ module DMA(
 				else if(kernel_size == 'd5)
 				begin
 					if(DRAM_data_count	==	'd25)
+					begin
+						if(DRAM_data_flag[3] == 1'b1)
+							DRAM_data_count	<=	'd1;
+						else
+							DRAM_data_count	<=	'd0;
+					end
+					else
+					begin
+						if(DRAM_data_flag[3] == 1'b1)
+							DRAM_data_count	<=	DRAM_data_count + 1'b1;
+					end
+				end
+				else if(kernel_size == 'd1)
+				begin
+					if(DRAM_data_count	==	filter_parting_map_times)
 					begin
 						if(DRAM_data_flag[3] == 1'b1)
 							DRAM_data_count	<=	'd1;
@@ -650,6 +965,36 @@ module DMA(
 					buffer[24]	<=	32'd0;
 				end
 			end
+			else if(kernel_size == 'd1)
+			begin
+				if(cur_state == 4'b0010||cur_state == 4'b0011)
+				begin
+					if(DRAM_data_flag[3] == 1'b1)
+					begin
+						buffer[0]	<=	buffer[1];
+						buffer[1]	<=	buffer[2];
+						buffer[2]	<=	buffer[3];
+						buffer[3]	<=	buffer[4];
+						buffer[4]	<=	buffer[5];
+						buffer[5]	<=	buffer[6];
+						buffer[6]	<=	buffer[7];
+						buffer[7]	<=	buffer[8];
+						buffer[8]	<=	DRAM_Q;
+					end
+				end
+				else if(cur_state == 4'b0000)
+				begin
+					buffer[0]	<=	32'd0;
+					buffer[1]	<=	32'd0;
+					buffer[2]	<=	32'd0;
+					buffer[3]	<=	32'd0;
+					buffer[4]	<=	32'd0;
+					buffer[5]	<=	32'd0;
+					buffer[6]	<=	32'd0;
+					buffer[7]	<=	32'd0;
+					buffer[8]	<=	32'd0;
+				end
+			end
 		end
     end
 
@@ -690,36 +1035,78 @@ module DMA(
 		else
 			DMA_done = 1'b0;
 	end
-	//
-	always_ff @(posedge clk, posedge rst) 
+	//read_end
+	// always_ff @(posedge clk, posedge rst) 
+	// begin
+	// 	if(rst)
+	// 		read_end	<=	1'b0;
+	// 	else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
+	// 	begin
+	// 		if(cur_state == 4'b0010||cur_state == 4'b0011)
+	// 		begin
+	// 			if( input_buffer_A[buf_select] == BUF_ADDR_end)
+	// 				read_end	<=	1'b1;
+	// 		end
+	// 		else
+	// 			read_end	<=	1'b0;
+	// 	end
+	// 	else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
+	// 	begin
+	// 		if(cur_state == 4'b0010||cur_state == 4'b0011)
+	// 		begin
+	// 			if( weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7]] == WEIGHT_SRAM_ADDR_end[6:0])
+	// 				read_end	<=	1'b1;
+	// 		end
+	// 		else
+	// 			read_end	<=	1'b0;
+	// 	end
+	// 	else if(DRAM_addr == DRAM_ADDR_end && cur_state != 4'b0000)
+	// 		read_end	<=	1'b1;
+	// 	else if(cur_state	==	4'b0000)
+	// 		read_end	<=	1'b0;
+	// end
+	always_comb 
 	begin
 		if(rst)
-			read_end	<=	1'b0;
+			read_end_predict	=	1'b0;
 		else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
 				if( input_buffer_A[buf_select] == BUF_ADDR_end)
-					read_end	<=	1'b1;
+					read_end_predict	=	1'b1;
 			end
 			else
-				read_end	<=	1'b0;
+				read_end_predict	=	1'b0;
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if( weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]] == WEIGHT_SRAM_ADDR_end[6:0])
-					read_end	<=	1'b1;
+				if(kernel_size == 'd1)
+				begin
+					if( weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[15:7]] == WEIGHT_SRAM_ADDR_end[6:0] && at_least_one =='b1)
+						read_end_predict	=	1'b1;
+				end
+				else
+				begin
+					if( weight_SRAM_A_write[WEIGHT_SRAM_ADDR_start[11:7]*'d9] == WEIGHT_SRAM_ADDR_end[6:0] && at_least_one =='b1)
+						read_end_predict	=	1'b1;
+				end
 			end
 			else
-				read_end	<=	1'b0;
+				read_end_predict	=	1'b0;
 		end
 		else if(DRAM_addr == DRAM_ADDR_end && cur_state != 4'b0000)
-			read_end	<=	1'b1;
+			read_end_predict	=	1'b1;
 		else if(cur_state	==	4'b0000)
-			read_end	<=	1'b0;
+			read_end_predict	=	1'b0;
 	end
+	always_ff @(posedge clk, posedge rst) 
+	begin
+		read_end	<=	read_end_predict;
+	end
+
 
     //DRAM_RASn
     always_ff @(posedge clk, posedge rst) 
@@ -929,6 +1316,24 @@ module DMA(
 				// 		cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
 				// end
 			end
+			else if(kernel_size == 'd1)
+			begin
+				if(filter_parting_map_times == 'd1)
+				begin
+					if(DRAM_data_count	==	'd1)
+						cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				end
+				else if(filter_parting_map_times == 'd4)
+				begin
+					if(DRAM_data_count	==	'd4)
+						cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				end
+				else if(filter_parting_map_times == 'd9)
+				begin
+					if(DRAM_data_count	==	'd9)
+						cur_addr[6:0]	<=	cur_addr[6:0]	+	1'b1;
+				end
+			end
 		end
 		else if(DMA_type == 1'b1)
 		begin
@@ -1004,7 +1409,7 @@ module DMA(
 				else
 					output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]];
 			end
-			else if(cur_state == 4'b0010 )//&& DRAM_addr[11:2] != 10'd1022)
+			else if(cur_state == 4'b0010  && DRAM_addr[11:2] != 10'd1023)//&& DRAM_addr[11:2] != 10'd1022)
 				output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]] + 1'b1;
 			else if(cur_state == 4'b0011 && DRAM_addr[11:2] != 10'd1022)
 				output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]]	<=	output_SRAM_AB_DMA[Output_SRAM_ADDR_start[17:12]] + 1'b1;

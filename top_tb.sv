@@ -19,7 +19,7 @@ module top_tb;
 	logic	[3:0]	kernel_size;
 	logic	[9:0]	kernel_num;
     logic   [2:0]   stride;
-	logic	[9:0]	channel;
+	logic	[10:0]	channel;
 	logic	[9:0]	map_size;
 	logic	[9:0]	ouput_map_size;
 	logic	[1:0]	pooling;
@@ -49,7 +49,8 @@ module top_tb;
     );
 
     string prog_path;
-	integer gf, i, num, j,k, err, h;
+	integer gf, i, num, j,k, err, h, T;
+	integer	test_num = 34; 
 
     top top_1(
         .clk(clk),
@@ -79,34 +80,93 @@ module top_tb;
     begin
         clk = 0;
         rst = 1;
-        // kernel_size = 3;
-        // stride = 1;
-        // kernel_num = 16;
-        // channel = 3;
-		// map_size = 416;
-		// ouput_map_size = 414;
-		kernel_size = 5;
-        stride = 1;
-        kernel_num = 32;
-        channel = 3;
-		map_size = 52;
-		ouput_map_size = 48;
+
+		if(test_num == 11)
+		begin
+			kernel_size = 3;
+	        stride = 1;
+	        kernel_num = 16;
+	        channel = 3;
+			map_size = 416;
+			ouput_map_size = 414;
+		end
+		else if(test_num == 17)
+		begin
+			kernel_size = 3;
+		    stride = 1;
+		    kernel_num = 32;
+		    channel = 3;
+			map_size = 52;
+			ouput_map_size = 50;
+		end
+		else if(test_num == 21)
+		begin
+			kernel_size = 5;
+	        stride = 1;
+	        kernel_num = 16;
+	        channel = 3;
+			map_size = 416;
+			ouput_map_size = 412;
+		end
+		else if(test_num == 22)
+		begin
+			kernel_size = 5;
+	        stride = 1;
+	        kernel_num = 64;
+	        channel = 32;
+			map_size = 104;
+			ouput_map_size = 100;
+		end
+		else if(test_num == 31)
+		begin
+			kernel_size = 1;
+	        stride = 1;
+	        kernel_num = 32;
+	        channel = 4;
+			map_size = 26;
+			ouput_map_size = 26;
+		end
+		else if(test_num == 32)
+		begin
+			kernel_size = 1;
+	        stride = 1;
+	        kernel_num = 256;
+	        channel = 128;
+			map_size = 26;
+			ouput_map_size = 26;
+		end
+		else if(test_num == 33)
+		begin
+			kernel_size = 1;
+	        stride = 1;
+	        kernel_num = 256;
+	        channel = 128;
+			map_size = 13;
+			ouput_map_size = 13;
+		end
+		else if(test_num == 34)
+		begin
+			kernel_size = 1;
+	        stride = 1;
+	        kernel_num = 64;
+	        channel = 512;
+			map_size = 26;
+			ouput_map_size = 26;
+		end
+		else if(test_num == 35)
+		begin
+			kernel_size = 1;
+	        stride = 1;
+	        kernel_num = 256;
+	        channel = 1024;
+			map_size = 13;
+			ouput_map_size = 13;
+		end
+
 		pooling = 0;
 		run = 0;
-
-
         #(`CYCLE*4) rst = 0;
-		run = 1; 
-		prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/";
-
-		// $readmemh({prog_path, "/test0.hex"}, DRAM_1.Memory_byte0);
-        // $readmemh({prog_path, "/test1.hex"}, DRAM_1.Memory_byte1);
-        // $readmemh({prog_path, "/test2.hex"}, DRAM_1.Memory_byte2);
-        // $readmemh({prog_path, "/test3.hex"}, DRAM_1.Memory_byte3);
-		$readmemh({prog_path, "model2/layer7/input0.hex"}, DRAM_1.Memory_byte0);
-        $readmemh({prog_path, "model2/layer7/input1.hex"}, DRAM_1.Memory_byte1);
-        $readmemh({prog_path, "model2/layer7/input2.hex"}, DRAM_1.Memory_byte2);
-        $readmemh({prog_path, "model2/layer7/input3.hex"}, DRAM_1.Memory_byte3);
+		run = 1;
         #(`CYCLE*10) run = 0;
         //#(`CYCLE*5000) $finish;
     end
@@ -119,15 +179,78 @@ module top_tb;
     end
 
 	initial begin
+		#(`CYCLE*4)
+		case(test_num)
+			11	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer1";
+				h = 414 * 414 * 16;
+				T = 8000000;
+			end
+			17	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer7";
+				h = 50 * 50 * 32;
+				T = 600000;
+			end
+			21	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model2/layer1";
+				h = 412 * 412 * 16;
+				T = 10000000;
+			end
+			22	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model2/layer2";
+				h = 100 * 100 * 64;
+				T = 10000000;
+			end
+			31	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model3_size_0/layer1";
+				h = 26 * 26 * 32;
+				T = 200000;
+			end
+			32	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model3_size_0/layer2";
+				h = 26 * 26 * 256;
+				T = 2000000;
+			end
+			33	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model3_size_0/layer3";
+				h = 13 * 13 * 256;
+				T = 900000;
+			end
+			34	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model3_size_0/layer4";
+				h = 26 * 26 * 64;
+				T = 2000000;
+			end
+			35	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model3_size_0/layer5";
+				h = 13 * 13 * 256;
+				T = 8000000;
+			end
+			default: prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer1";
+		endcase
+		$readmemh({prog_path, "/input0.hex"}, DRAM_1.Memory_byte0);
+        $readmemh({prog_path, "/input1.hex"}, DRAM_1.Memory_byte1);
+        $readmemh({prog_path, "/input2.hex"}, DRAM_1.Memory_byte2);
+        $readmemh({prog_path, "/input3.hex"}, DRAM_1.Memory_byte3);
         //#(`CYCLE*10000000)
 		//#(`CYCLE*10000000)
 		//#(`CYCLE*4100000)
-		#(`CYCLE*600000)
-		h = 48 * 48 * 32;
-		//h = 48 * 2;//48 * 32 ;//*50 + 50*50*15;//*50*32;
+		
+		#(`CYCLE*T)
+		//h = 50 * 50 * 32;
 		num = 0;
-		gf = $fopen({prog_path, "model2/layer7/output.txt"}, "r");
-		//gf = $fopen({prog_path, "model2/layer7/output_max_pooling.txt"}, "r");
+		
+		gf = $fopen({prog_path, "/output.txt"}, "r");
+		//gf = $fopen({prog_path, "model1/layer7/output.txt"}, "r");
         while (num < h)
         begin
             $fscanf(gf, "%d\n", GOLDEN[num]);
@@ -145,18 +268,8 @@ module top_tb;
         //     $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
         // end
 		$display("\n");
-		// for(i=20700;i<20760;i++)
-        // begin
-        //     $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
-        // end
-		$display("\n");
-		// for(i=170982;i<171042;i++)
-        // begin
-        //     $display("%6h : %h",`OUTPUT_START + i,`mem_word(`OUTPUT_START + i));
-        // end
-		$display("\n");
-		//num = 414 * 414 + 414 * 414 * 2;
-		num = 102 * 5 * 1 ;
+		$display("test_num : %d\n",test_num);
+		$display("check    : %d\n",h);
 		err = 0;
 		for (i = 0; i < h; i++)
 		begin

@@ -41,7 +41,7 @@ module top(
 	input	[3:0]	kernel_size;
 	input	[9:0]	kernel_num;
 	input	[2:0]	stride;
-	input	[9:0]	channel;
+	input	[10:0]	channel;
 	input	[9:0]	map_size;
 	input	[9:0]	ouput_map_size;
 	input	[1:0]	pooling;
@@ -86,22 +86,22 @@ module top(
 	logic	input_SRAM_CEN_write	[0:63];
 	logic	input_SRAM_rw_select	[0:63];		//0-> read 1->write
 	//weight_SRAM
-	logic	[287:0]	weight_SRAM_DI		[0:31];
-	logic	[287:0]	weight_SRAM_DO		[0:31];
-	logic	[6:0]	weight_SRAM_A		[0:31];
-	logic	weight_SRAM_CEN		[0:31];
-	logic	weight_SRAM_OEN		[0:31];
-	logic	weight_SRAM_WEN		[0:31];
+	logic	[287:0]	weight_SRAM_DI		[0:287];
+	logic	[287:0]	weight_SRAM_DO		[0:287];
+	logic	[6:0]	weight_SRAM_A		[0:287];
+	logic	weight_SRAM_CEN		[0:287];
+	logic	weight_SRAM_OEN		[0:287];
+	logic	weight_SRAM_WEN		[0:287];
 	//weight SRAM read/write
-	logic	[6:0]	weight_SRAM_A_read		[0:31];
-	logic	[6:0]	weight_SRAM_A_write		[0:31];
-	logic	weight_SRAM_CEN_read	[0:31];
-	logic	weight_SRAM_CEN_write	[0:31];
+	logic	[6:0]	weight_SRAM_A_read		[0:287];
+	logic	[6:0]	weight_SRAM_A_write		[0:287];
+	logic	weight_SRAM_CEN_read	[0:287];
+	logic	weight_SRAM_CEN_write	[0:287];
 	logic	weight_SRAM_rw_select;		//0-> read 1->write
     //controller
 	logic	controller_run;
-	logic	[9:0]	act_cur_channel;
-	logic	[9:0]	cur_channel;
+	logic	[10:0]	act_cur_channel;
+	logic	[10:0]	cur_channel;
     //logic   DMA_done;
 	logic	[5:0]	row_end;
 	logic	[5:0]	col_end;
@@ -144,8 +144,8 @@ module top(
 	logic	[31:0]  DRAM_ADDR_start,DRAM_ADDR_end;
 	logic	[6:0]	BUF_ADDR_start_write;
 	logic	[6:0]	BUF_ADDR_end_write;
-	logic	[12:0]	WEIGHT_SRAM_ADDR_start;
-	logic	[12:0]	WEIGHT_SRAM_ADDR_end;
+	logic	[15:0]	WEIGHT_SRAM_ADDR_start;
+	logic	[15:0]	WEIGHT_SRAM_ADDR_end;
 	logic	[17:0]	Output_SRAM_ADDR_start,Output_SRAM_ADDR_end;
 	logic	DMA_start,DMA_done;
 	logic	SRAM_type,DMA_buf_select;
@@ -163,6 +163,9 @@ module top(
 	logic	buffer2sram_input_done;
 	//pooling_enable
 	logic	pooling_enable;
+	//filter_parting_size1_times
+	logic	[3:0]	filter_parting_map_times;
+	logic	[3:0]	filter_parting_map_count;
 	
 
     //assign  DMA_start	=   1'b1;
@@ -266,7 +269,9 @@ module top(
         .weight_SRAM_WEN(),
 		//bank_done
 		.cur_row(controller_cur_row),
-		.cur_state(controller_cur_state)
+		.cur_state(controller_cur_state),
+		//filter_parting_size1_times
+		.filter_parting_map_times(filter_parting_map_times)
     );
 	// assign	DRAM_ADDR_start	=	32'b10010000;
 	// assign	DRAM_ADDR_end	=	32'b11001100;
@@ -321,7 +326,10 @@ module top(
 		.output_SRAM_OEN_DMA(output_SRAM_OEN_DMA),
 		.output_SRAM_CEN_DMA(output_SRAM_CEN_DMA),
 		//conv info
-		.kernel_size(kernel_size)
+		.kernel_size(kernel_size),
+		//filter_parting_size1_times
+		.filter_parting_map_times(filter_parting_map_times),
+		.filter_parting_map_count(filter_parting_map_count)
 	);
 
 	buffer2sram_input buffer2sram_input_1(
@@ -393,7 +401,10 @@ module top(
 		.input_SRAM_rw_select(input_SRAM_rw_select),
 		.input_buffer_rw_select(input_buffer_rw_select),
 		.output_sram_read_select(output_sram_read_select),
-		.weight_SRAM_rw_select(weight_SRAM_rw_select)
+		.weight_SRAM_rw_select(weight_SRAM_rw_select),
+		//filter_parting_size1_times
+		.filter_parting_map_times(filter_parting_map_times),
+		.filter_parting_map_count(filter_parting_map_count)
 	);
 
     //SRAM
@@ -440,9 +451,9 @@ module top(
 		end
 	endgenerate
 
-	//weight_SRAM * 32
+	//weight_SRAM * 288
 	generate
-		for(i=0;i<32;i=i+1)
+		for(i=0;i<288;i=i+1)
 		begin: u_weight_SRAM
 			weight_SRAM weight_SRAM_i(
 				.CLK(clk),

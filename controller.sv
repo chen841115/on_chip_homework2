@@ -39,7 +39,9 @@ module controller(
 	weight_SRAM_WEN,
 	//bank_done
 	cur_row,
-	cur_state
+	cur_state,
+	//filter_parting_size1_times
+	filter_parting_map_times
 );
 
     // Input Ports: clock and control signals
@@ -52,10 +54,10 @@ module controller(
 	input	[5:0]	row_end;
 	input	[5:0]	col_end;
 	input	[2:0]	stride;
-	input	[9:0]	channel;
+	input	[10:0]	channel;
 	output	logic	tile_done;
-	input	[9:0]	act_cur_channel;
-	input	[9:0]	cur_channel;
+	input	[10:0]	act_cur_channel;
+	input	[10:0]	cur_channel;
 	input	pooling_enable;
 	//output_SRAM
 	output	logic	[31:0]	output_SRAM_DI		[0:31];
@@ -74,14 +76,17 @@ module controller(
 	//output	logic	input_SRAM_WEN	[0:7]; 
 	//weight_SRAM
 	//logic	[287:0]	weight_SRAM_DI		[0:31];
-	input	logic	[287:0]	weight_SRAM_DO		[0:31];
-	output	logic	[6:0]	weight_SRAM_A		[0:31];
-	output	logic	weight_SRAM_CEN		[0:31];
-	output	logic	weight_SRAM_OEN		[0:31];
-	output	logic	weight_SRAM_WEN		[0:31];
+	input	logic	[287:0]	weight_SRAM_DO		[0:287];
+	output	logic	[6:0]	weight_SRAM_A		[0:287];
+	output	logic	weight_SRAM_CEN		[0:287];
+	output	logic	weight_SRAM_OEN		[0:287];
+	output	logic	weight_SRAM_WEN		[0:287];
 	//bank_done
 	output	[5:0]	cur_row;
 	output	[2:0]	cur_state;
+
+	//filter_parting_size1_times
+	input	[3:0]	filter_parting_map_times;
 
 
 
@@ -125,11 +130,11 @@ module controller(
 	logic	[3:0]	predict_tmp2;
 	logic	[3:0]	predict_tmp3;
 	//input_select
-	logic	[5:0]	input_select	[0:6];
-	logic	[5:0]	mem_access_input_select	[0:6];
-	logic	[5:0]	mem_data_input_select	[0:6];
+	logic	[5:0]	input_select	[0:8];
+	logic	[5:0]	mem_access_input_select	[0:8];
+	logic	[5:0]	mem_data_input_select	[0:8];
 	//input_SRAM buffer
-	logic	[31:0]	data_buffer	[0:34];
+	logic	[31:0]	data_buffer	[0:51];
 	//oversize kernel
 	logic	[4:0]	oversize_count;
 	logic	[1:0]	oversize_first,mem_access_oversize_first,mem_data_oversize_first;
@@ -177,7 +182,7 @@ module controller(
 				begin
 					if(controller_run)
 					begin
-						if(kernel_size == 'd3)
+						if(kernel_size == 'd3 || kernel_size == 'd1)
 							next_state = S1;
 						else
 							next_state = S3;
@@ -196,7 +201,7 @@ module controller(
 				begin
 					if(~controller_run)	
 					begin
-						if((kernel_size == 'd3))
+						if(kernel_size == 'd3 || kernel_size == 'd1)
 						begin
 							if(tile_done)
 								next_state = IDLE;
@@ -466,6 +471,38 @@ module controller(
 			// 	end
 			// end
 		end
+		else if(kernel_size == 'd1)
+		begin
+			if(stride == 'd1)
+			begin
+				if(cur_col >= (col_end - kernel_size + 'b1))
+				begin
+					if(cur_row >= (row_end - kernel_size + 'b1))
+					begin
+						next_col = 5'd0;
+						next_row = 5'd0;
+					end
+					else
+					begin
+						next_col = 5'd0;
+						next_row = cur_row + 5'd1;
+					end
+				end
+				else
+				begin
+					if(cur_state == S1)
+					begin
+						next_col = cur_col + 1'b1;
+						next_row = cur_row;
+					end
+					else
+					begin
+						next_col = 5'd0;
+						next_row = 5'd0;
+					end
+				end
+			end
+		end
 	end
 
 	// //bank_done
@@ -671,6 +708,60 @@ module controller(
 					endcase
 				end
 			end
+			else if(kernel_size == 'd1)
+			begin
+				if(stride == 'd1)
+				begin
+					if(filter_parting_map_times == 'd1)
+						input_SRAM_A_predict[0] = 	next_col;
+					else if(filter_parting_map_times == 'd4)
+					begin
+						input_SRAM_A_predict[0] = 	(next_row[0])?next_col+'d32:next_col;
+						input_SRAM_A_predict[1] = 	(next_row[0])?next_col+'d32:next_col;
+						input_SRAM_A_predict[2] = 	(next_row[0])?next_col+'d32:next_col;
+						input_SRAM_A_predict[3] = 	(next_row[0])?next_col+'d32:next_col;
+					end
+					else if(filter_parting_map_times == 'd9)
+					begin
+						if(next_row % 'd3 == 0)
+						begin
+							input_SRAM_A_predict[0] =	next_col;
+							input_SRAM_A_predict[1] =	next_col;
+							input_SRAM_A_predict[2] =	next_col;
+							input_SRAM_A_predict[3] =	next_col;
+							input_SRAM_A_predict[4] =	next_col;
+							input_SRAM_A_predict[5] =	next_col;
+							input_SRAM_A_predict[6] =	next_col;
+							input_SRAM_A_predict[7] =	next_col;
+							input_SRAM_A_predict[8] =	next_col;
+						end
+						else if(next_row % 'd3 == 1)
+						begin
+							input_SRAM_A_predict[0] =	next_col + 'd20;
+							input_SRAM_A_predict[1] =	next_col + 'd20;
+							input_SRAM_A_predict[2] =	next_col + 'd20;
+							input_SRAM_A_predict[3] =	next_col + 'd20;
+							input_SRAM_A_predict[4] =	next_col + 'd20;
+							input_SRAM_A_predict[5] =	next_col + 'd20;
+							input_SRAM_A_predict[6] =	next_col + 'd20;
+							input_SRAM_A_predict[7] =	next_col + 'd20;
+							input_SRAM_A_predict[8] =	next_col + 'd20;
+						end
+						else if(next_row % 'd3 == 2)
+						begin
+							input_SRAM_A_predict[0] =	next_col + 'd40;
+							input_SRAM_A_predict[1] =	next_col + 'd40;
+							input_SRAM_A_predict[2] =	next_col + 'd40;
+							input_SRAM_A_predict[3] =	next_col + 'd40;
+							input_SRAM_A_predict[4] =	next_col + 'd40;
+							input_SRAM_A_predict[5] =	next_col + 'd40;
+							input_SRAM_A_predict[6] =	next_col + 'd40;
+							input_SRAM_A_predict[7] =	next_col + 'd40;
+							input_SRAM_A_predict[8] =	next_col + 'd40;
+						end
+					end
+				end
+			end
 		end
 	end
 
@@ -690,21 +781,50 @@ module controller(
 			input_select[4]	=	'd0;
 			input_select[5]	=	'd0;
 			input_select[6]	=	'd0;
+			input_select[7]	=	'd0;
+			input_select[8]	=	'd0;
 		end
 		else
 		begin
-			input_select[0]	=	next_row;
-			input_select[1]	=	next_row + 'd1;
-			input_select[2]	=	next_row + 'd2;
-			if(kernel_size == 'd5)
+			if(kernel_size == 'd1)
 			begin
-				input_select[3]	=	next_row + 'd3;
-				input_select[4]	=	next_row + 'd4;
+				if(filter_parting_map_times == 'd1)
+					input_select[0]	=	next_row;
+				else if(filter_parting_map_times == 'd4)
+				begin
+					input_select[0]	=	(next_row >> 'd1);
+					input_select[1]	=	(next_row >> 'd1) + 'd16;
+					input_select[2]	=	(next_row >> 'd1) + 'd32;
+					input_select[3]	=	(next_row >> 'd1) + 'd48;
+				end
+				else if(filter_parting_map_times == 'd9)
+				begin
+					input_select[0]	=	(next_row / 'd3);
+					input_select[1]	=	(next_row / 'd3) + 'd7;
+					input_select[2]	=	(next_row / 'd3) + 'd14;
+					input_select[3]	=	(next_row / 'd3) + 'd21;
+					input_select[4]	=	(next_row / 'd3) + 'd28;
+					input_select[5]	=	(next_row / 'd3) + 'd35;
+					input_select[6]	=	(next_row / 'd3) + 'd42;
+					input_select[7]	=	(next_row / 'd3) + 'd49;
+					input_select[8]	=	(next_row / 'd3) + 'd56;
+				end
 			end
-			else if(kernel_size == 'd7)
+			else
 			begin
-				input_select[5]	=	next_row + 'd5;
-				input_select[6]	=	next_row + 'd6;
+				input_select[0]	=	next_row;
+				input_select[1]	=	next_row + 'd1;
+				input_select[2]	=	next_row + 'd2;
+				if(kernel_size == 'd5)
+				begin
+					input_select[3]	=	next_row + 'd3;
+					input_select[4]	=	next_row + 'd4;
+				end
+				else if(kernel_size == 'd7)
+				begin
+					input_select[5]	=	next_row + 'd5;
+					input_select[6]	=	next_row + 'd6;
+				end
 			end
 		end
 	end
@@ -718,6 +838,8 @@ module controller(
 		mem_access_input_select[4]	<=	input_select[4];
 		mem_access_input_select[5]	<=	input_select[5];
 		mem_access_input_select[6]	<=	input_select[6];
+		mem_access_input_select[7]	<=	input_select[7];
+		mem_access_input_select[8]	<=	input_select[8];
 		mem_data_input_select[0]	<=	mem_access_input_select[0];
 		mem_data_input_select[1]	<=	mem_access_input_select[1];
 		mem_data_input_select[2]	<=	mem_access_input_select[2];
@@ -725,6 +847,8 @@ module controller(
 		mem_data_input_select[4]	<=	mem_access_input_select[4];
 		mem_data_input_select[5]	<=	mem_access_input_select[5];
 		mem_data_input_select[6]	<=	mem_access_input_select[6];
+		mem_data_input_select[7]	<=	mem_access_input_select[7];
+		mem_data_input_select[8]	<=	mem_access_input_select[8];
 	end
 
 	//input_SRAM_A
@@ -773,6 +897,40 @@ module controller(
 						input_SRAM_A[input_select[3]] <=  input_SRAM_A_predict[3][6:2];
 					else if(i==input_select[4])
 						input_SRAM_A[input_select[4]] <=  input_SRAM_A_predict[4][6:2];
+					else
+						input_SRAM_A[i]	<=	7'b0;
+				end
+			end
+			else
+			begin
+				foreach(input_SRAM_A[i])
+					input_SRAM_A[i]	<=	7'b0;
+			end
+		end  
+		else if(kernel_size == 'd1)
+		begin
+			if(cur_state == S1)
+			begin
+				foreach(input_SRAM_A[i])
+				begin
+					if(i==input_select[0])
+						input_SRAM_A[input_select[0]] <=  input_SRAM_A_predict[0][6:2];
+					else if(i==input_select[1])
+						input_SRAM_A[input_select[1]] <=  input_SRAM_A_predict[1][6:2];
+					else if(i==input_select[2])
+						input_SRAM_A[input_select[2]] <=  input_SRAM_A_predict[2][6:2];
+					else if(i==input_select[3])
+						input_SRAM_A[input_select[3]] <=  input_SRAM_A_predict[3][6:2];
+					else if(i==input_select[4])
+						input_SRAM_A[input_select[4]] <=  input_SRAM_A_predict[4][6:2];
+					else if(i==input_select[5])
+						input_SRAM_A[input_select[5]] <=  input_SRAM_A_predict[5][6:2];
+					else if(i==input_select[6])
+						input_SRAM_A[input_select[6]] <=  input_SRAM_A_predict[6][6:2];
+					else if(i==input_select[7])
+						input_SRAM_A[input_select[7]] <=  input_SRAM_A_predict[7][6:2];
+					else if(i==input_select[8])
+						input_SRAM_A[input_select[8]] <=  input_SRAM_A_predict[8][6:2];
 					else
 						input_SRAM_A[i]	<=	7'b0;
 				end
@@ -833,6 +991,25 @@ module controller(
 					input_SRAM_OEN[i]	<=	1'd1;
 			end
 		end  
+		else if(kernel_size == 'd1)
+		begin
+			if(cur_state == S1 || next_state == S1)
+			begin
+				foreach(input_SRAM_OEN[i])
+				begin
+					if(i==input_select[0]||i==input_select[1]||i==input_select[2]||i==input_select[3]||i==input_select[4]||
+					i==input_select[5]||i==input_select[6]||i==input_select[7]||i==input_select[8])
+						input_SRAM_OEN[i]	<=	1'd0;
+					else
+						input_SRAM_OEN[i]	<=	1'd1;
+				end
+			end
+			else
+			begin
+				foreach(input_SRAM_OEN[i])
+					input_SRAM_OEN[i]	<=	1'd1;
+			end
+		end  
 	end
 
 	//ERROR 
@@ -840,7 +1017,7 @@ module controller(
 	//assign filter_times = 	6'd1;
 	always_comb
 	begin
-		if(kernel_size == 'd3)
+		if(kernel_size == 'd3 || kernel_size == 'd1)
 			filter_times = 	6'd0;
 		else if(kernel_size == 'd5)
 			filter_times = 	6'd2;
@@ -865,6 +1042,13 @@ module controller(
 				else if(kernel_size == 'd5)
 				begin
 					if(cur_col == (col_end-'d4) && cur_row == (row_end-'d4))
+						filter_times_now <= filter_times_now + 1;
+					else
+						filter_times_now <= filter_times_now;
+				end
+				else if(kernel_size == 'd1)
+				begin
+					if(cur_col == (col_end) && cur_row == (row_end))
 						filter_times_now <= filter_times_now + 1;
 					else
 						filter_times_now <= filter_times_now;
@@ -908,6 +1092,13 @@ module controller(
 			if(filter_times_now > filter_times && oversize_count == 'b10)
 				state_done   <=	1'b1;
 		end
+		else if(kernel_size == 'd1)
+		begin
+			if(filter_times_now > filter_times)
+				state_done	<=	1'b1;
+			if(filter_times_now > filter_times && PE_out_row == 1'b0 && PE_out_col == 1'b0)
+				tile_done   <=	1'b1;
+		end
 		else 
 		begin
 			tile_done	<=	tile_done;
@@ -949,6 +1140,34 @@ module controller(
 					weight_SRAM_A[i]	<=	7'd0;
 			end
 		end  
+		else if(kernel_size == 'd1)
+		begin
+			if(cur_state == S1 && filter_times_now <= filter_times)
+			begin
+				// foreach(weight_SRAM_A[i])
+				// 	weight_SRAM_A[i]	<=	cur_channel[6:0];
+				if(filter_parting_map_times =='d1)
+				begin
+					foreach(weight_SRAM_A[i])
+						weight_SRAM_A[i]	<=	cur_channel[6:0];
+				end
+				else if(filter_parting_map_times =='d4)
+				begin
+					foreach(weight_SRAM_A[i])
+						weight_SRAM_A[i]	<=	cur_channel >> 'd2;
+				end
+				else if(filter_parting_map_times =='d9)
+				begin
+					foreach(weight_SRAM_A[i])
+						weight_SRAM_A[i]	<=	cur_channel / 'd9;
+				end
+			end
+			else
+			begin
+				foreach(weight_SRAM_A[i])
+					weight_SRAM_A[i]	<=	7'd0;
+			end
+		end
 		else
 		begin
 			foreach(weight_SRAM_A[i])
@@ -994,6 +1213,19 @@ module controller(
 					weight_SRAM_OEN[i]	<=	1'd1;
 			end
 		end
+		else if(kernel_size == 'd1)
+		begin
+			if(cur_state == S1)
+			begin
+				foreach(weight_SRAM_OEN[i])
+					weight_SRAM_OEN[i]	<=	1'd0;
+			end
+			else
+			begin
+				foreach(weight_SRAM_OEN[i])
+					weight_SRAM_OEN[i]	<=	1'd1;
+			end
+		end
 	end
 
 	// may have some problem
@@ -1015,7 +1247,7 @@ module controller(
 			else
 				output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
 		end
-		else if(kernel_size == 'd5)
+		else if(kernel_size == 'd5 || kernel_size == 'd1)
 			output_SRAM_AB_prdict	=	cur_row	* 'd62 + cur_col;
 	end
 	//output_SRAM_AB
@@ -1040,6 +1272,19 @@ module controller(
 			end
 		end
 		else if(kernel_size == 5)
+		begin
+			if(cur_state == S1)
+			begin
+				foreach(output_SRAM_AB[i])
+					output_SRAM_AB[i]   <=	output_SRAM_AB_prdict;
+			end
+			else
+			begin
+				foreach(output_SRAM_AB[i])
+					output_SRAM_AB[i]   <=	12'd0;
+			end
+		end
+		else if(kernel_size == 1)
 		begin
 			if(cur_state == S1)
 			begin
@@ -1116,6 +1361,15 @@ module controller(
 			// 	output_SRAM_AA[i]	<=	output_sram_addr[i];
 			foreach(output_SRAM_WEN[i])
 				output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
+		end
+		else if(kernel_size == 1)
+		begin
+			foreach(output_SRAM_AA[i])
+				output_SRAM_AA[i]	<=	(PE_out_row * 'd62) + PE_out_col;
+			// foreach(output_SRAM_AA[i])
+			// 	output_SRAM_AA[i]	<=	output_sram_addr[i];
+			foreach(output_SRAM_WEN[i])
+				output_SRAM_WEN[i]	<=	(PE_done[i])?'b0:'b1;
 		end  
 	end
 
@@ -1175,7 +1429,12 @@ module controller(
 		begin
 			foreach(output_SRAM_DI[i])
 				output_SRAM_DI[i]	<=	PE_data_psum_out[i];
-		end 
+		end
+		else if(kernel_size == 1)
+		begin
+			foreach(output_SRAM_DI[i])
+				output_SRAM_DI[i]	<=	PE_data_psum_out[i];
+		end  
 	end
 
 	//output_SRAM control
@@ -1208,6 +1467,17 @@ module controller(
 				output_SRAM_OEN	<=	1'd1;
 			end
 		end 
+		else if(kernel_size == 1)
+		begin
+			if(cur_state == S1)
+			begin
+				output_SRAM_OEN	<=	1'd0;
+			end
+			else
+			begin
+				output_SRAM_OEN	<=	1'd1;
+			end
+		end 
 	end
 	//output_SRAM_addr_write
 	always_ff @(posedge clk, posedge rst)
@@ -1220,6 +1490,11 @@ module controller(
 				output_SRAM_addr_write	<=	(cur_row * 'd62) + cur_col;
 		end
 		else if(kernel_size == 'd5)
+		begin
+			if(cur_state == S1)
+				output_SRAM_addr_write	<=	(cur_row * 'd62) + cur_col;
+		end
+		else if(kernel_size == 'd1)
 		begin
 			if(cur_state == S1)
 				output_SRAM_addr_write	<=	(cur_row * 'd62) + cur_col;
@@ -1309,15 +1584,15 @@ module controller(
 					begin
 						foreach(PE_data_weight[i])
 						begin
-							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
+							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
+							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
+							PE_data_weight[i][4] = weight_SRAM_DO[i*'d9 + 'd4];
+							PE_data_weight[i][5] = weight_SRAM_DO[i*'d9 + 'd5];
+							PE_data_weight[i][6] = weight_SRAM_DO[i*'d9 + 'd6];
+							PE_data_weight[i][7] = weight_SRAM_DO[i*'d9 + 'd7];
+							PE_data_weight[i][8] = weight_SRAM_DO[i*'d9 + 'd8];
 						end	
 					end
 				end
@@ -1327,15 +1602,15 @@ module controller(
 					begin
 						foreach(PE_data_weight[i])
 						begin
-							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
+							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
+							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
+							PE_data_weight[i][4] = weight_SRAM_DO[i*'d9 + 'd4];
+							PE_data_weight[i][5] = weight_SRAM_DO[i*'d9 + 'd5];
+							PE_data_weight[i][6] = weight_SRAM_DO[i*'d9 + 'd6];
+							PE_data_weight[i][7] = weight_SRAM_DO[i*'d9 + 'd7];
+							PE_data_weight[i][8] = weight_SRAM_DO[i*'d9 + 'd8];
 						end	
 					end
 				end
@@ -1348,35 +1623,85 @@ module controller(
 					begin
 						foreach(PE_data_weight[i])
 						begin
-							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
+							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
+							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
+							PE_data_weight[i][4] = weight_SRAM_DO[i*'d9 + 'd4];
+							PE_data_weight[i][5] = weight_SRAM_DO[i*'d9 + 'd5];
+							PE_data_weight[i][6] = weight_SRAM_DO[i*'d9 + 'd6];
+							PE_data_weight[i][7] = weight_SRAM_DO[i*'d9 + 'd7];
+							PE_data_weight[i][8] = weight_SRAM_DO[i*'d9 + 'd8];
 						end	
 					end
 					else if(cur_col == 'b0 && cur_row =='b0 && oversize_count == 'b10 && next_state != 'd2)
 					begin
 						foreach(PE_data_weight[i])
 						begin
-							PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-							PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-							PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-							PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-							PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-							PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-							PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-							PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-							PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
+							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
+							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
+							PE_data_weight[i][4] = weight_SRAM_DO[i*'d9 + 'd4];
+							PE_data_weight[i][5] = weight_SRAM_DO[i*'d9 + 'd5];
+							PE_data_weight[i][6] = weight_SRAM_DO[i*'d9 + 'd6];
+							PE_data_weight[i][7] = weight_SRAM_DO[i*'d9 + 'd7];
+							PE_data_weight[i][8] = weight_SRAM_DO[i*'d9 + 'd8];
 						end	
 					end
 				end
 			end
-			
+			else if(kernel_size == 'd1)
+			begin
+				if(cur_state == S1 && mem_access_col == 'b1 && mem_access_row =='b0)
+				begin
+					if(filter_parting_map_times == 'd9)
+					begin
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
+							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
+							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
+							PE_data_weight[i][4] = weight_SRAM_DO[i*'d9 + 'd4];
+							PE_data_weight[i][5] = weight_SRAM_DO[i*'d9 + 'd5];
+							PE_data_weight[i][6] = weight_SRAM_DO[i*'d9 + 'd6];
+							PE_data_weight[i][7] = weight_SRAM_DO[i*'d9 + 'd7];
+							PE_data_weight[i][8] = weight_SRAM_DO[i*'d9 + 'd8];
+						end	
+					end
+					else if(filter_parting_map_times == 'd4)
+					begin
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
+							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
+							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
+							PE_data_weight[i][4] = 'd0;
+							PE_data_weight[i][5] = 'd0;
+							PE_data_weight[i][6] = 'd0;
+							PE_data_weight[i][7] = 'd0;
+							PE_data_weight[i][8] = 'd0;
+						end	
+					end
+					else if(filter_parting_map_times == 'd1)
+					begin
+						foreach(PE_data_weight[i])
+						begin
+							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
+							PE_data_weight[i][1] = 'd0;
+							PE_data_weight[i][2] = 'd0;
+							PE_data_weight[i][3] = 'd0;
+							PE_data_weight[i][4] = 'd0;
+							PE_data_weight[i][5] = 'd0;
+							PE_data_weight[i][6] = 'd0;
+							PE_data_weight[i][7] = 'd0;
+							PE_data_weight[i][8] = 'd0;
+						end	
+					end
+				end
+			end
 		end
 	end
 
@@ -1920,6 +2245,148 @@ module controller(
 					endcase
 				end
 			end
+			if(kernel_size == 'd1)
+			begin
+				if(stride == 'd1 )
+				begin
+					case(mem_access_col[1:0])
+						2'b00:
+						begin
+							data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
+							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
+							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
+							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+
+							data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
+							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
+							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
+							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+
+							data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
+							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
+							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
+							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+
+							data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
+							data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
+							data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
+							data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+
+							data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
+							data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
+							data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
+							data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+
+							data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
+							data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
+							data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
+							data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+
+							data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
+							data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
+							data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
+							data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+
+							data_buffer[42]	<=	input_SRAM_DO[mem_data_input_select[7]][127:96];
+							data_buffer[43]	<=	input_SRAM_DO[mem_data_input_select[7]][95:64];
+							data_buffer[44]	<=	input_SRAM_DO[mem_data_input_select[7]][63:32];
+							data_buffer[45]	<=	input_SRAM_DO[mem_data_input_select[7]][31:0];
+
+							data_buffer[48]	<=	input_SRAM_DO[mem_data_input_select[8]][127:96];
+							data_buffer[49]	<=	input_SRAM_DO[mem_data_input_select[8]][95:64];
+							data_buffer[50]	<=	input_SRAM_DO[mem_data_input_select[8]][63:32];
+							data_buffer[51]	<=	input_SRAM_DO[mem_data_input_select[8]][31:0];
+						end
+						2'b01:
+						begin
+							data_buffer[0]	<=	data_buffer[1];
+							data_buffer[1]	<=	data_buffer[2];
+							data_buffer[2]	<=	data_buffer[3];
+
+							data_buffer[6]	<=	data_buffer[7];
+							data_buffer[7]	<=	data_buffer[8];
+							data_buffer[8]	<=	data_buffer[9];
+
+							data_buffer[12]	<=	data_buffer[13];
+							data_buffer[13]	<=	data_buffer[14];
+							data_buffer[14]	<=	data_buffer[15];
+
+							data_buffer[18]	<=	data_buffer[19];
+							data_buffer[19]	<=	data_buffer[20];
+							data_buffer[20]	<=	data_buffer[21];
+
+							data_buffer[24]	<=	data_buffer[25];
+							data_buffer[25]	<=	data_buffer[26];
+							data_buffer[26]	<=	data_buffer[27];
+
+							data_buffer[30]	<=	data_buffer[31];
+							data_buffer[31]	<=	data_buffer[32];
+							data_buffer[32]	<=	data_buffer[33];
+
+							data_buffer[36]	<=	data_buffer[37];
+							data_buffer[37]	<=	data_buffer[38];
+							data_buffer[38]	<=	data_buffer[39];
+
+							data_buffer[42]	<=	data_buffer[43];
+							data_buffer[43]	<=	data_buffer[44];
+							data_buffer[44]	<=	data_buffer[45];
+
+							data_buffer[48]	<=	data_buffer[49];
+							data_buffer[49]	<=	data_buffer[50];
+							data_buffer[50]	<=	data_buffer[51];
+						end
+						2'b10:
+						begin
+							data_buffer[0]	<=	data_buffer[1];
+							data_buffer[1]	<=	data_buffer[2];
+
+							data_buffer[6]	<=	data_buffer[7];
+							data_buffer[7]	<=	data_buffer[8];
+
+							data_buffer[12]	<=	data_buffer[13];
+							data_buffer[13]	<=	data_buffer[14];
+
+							data_buffer[18]	<=	data_buffer[19];
+							data_buffer[19]	<=	data_buffer[20];
+
+							data_buffer[24]	<=	data_buffer[25];
+							data_buffer[25]	<=	data_buffer[26];
+
+							data_buffer[30]	<=	data_buffer[31];
+							data_buffer[31]	<=	data_buffer[32];
+
+							data_buffer[36]	<=	data_buffer[37];
+							data_buffer[37]	<=	data_buffer[38];
+
+							data_buffer[42]	<=	data_buffer[43];
+							data_buffer[43]	<=	data_buffer[44];
+
+							data_buffer[48]	<=	data_buffer[49];
+							data_buffer[49]	<=	data_buffer[50];
+						end
+						2'b11:
+						begin
+							data_buffer[0]	<=	data_buffer[1];
+
+							data_buffer[6]	<=	data_buffer[7];
+
+							data_buffer[12]	<=	data_buffer[13];
+
+							data_buffer[18]	<=	data_buffer[19];
+
+							data_buffer[24]	<=	data_buffer[25];
+
+							data_buffer[30]	<=	data_buffer[31];
+
+							data_buffer[36]	<=	data_buffer[37];
+
+							data_buffer[42]	<=	data_buffer[43];
+
+							data_buffer[48]	<=	data_buffer[49];
+						end
+					endcase
+				end
+			end
 		end
 	end
 
@@ -1943,76 +2410,6 @@ module controller(
 			begin
 				if(stride == 'd1 && ((pooling_enable=='b1 && pooling_delay)||(pooling_enable=='b0)))
 				begin
-					// case (mem_data_col[1:0])
-					// 	2'b00	:
-					// 	begin
-					// 		if(mem_data_col == 6'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[2];
-					// 			PE_data_input[3]	<=	data_buffer[6];
-					// 			PE_data_input[4]	<=	data_buffer[7];
-					// 			PE_data_input[5]	<=	data_buffer[8];
-					// 			PE_data_input[6]	<=	data_buffer[12];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[2];
-					// 			PE_data_input[3]	<=	data_buffer[6];
-					// 			PE_data_input[4]	<=	data_buffer[7];
-					// 			PE_data_input[5]	<=	data_buffer[8];
-					// 			PE_data_input[6]	<=	data_buffer[12];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 	end
-					// 	2'b01	:
-					// 	begin
-					// 		PE_data_input[0]	<=	data_buffer[0];
-					// 		PE_data_input[1]	<=	data_buffer[1];
-					// 		PE_data_input[2]	<=	data_buffer[2];
-					// 		PE_data_input[3]	<=	data_buffer[6];
-					// 		PE_data_input[4]	<=	data_buffer[7];
-					// 		PE_data_input[5]	<=	data_buffer[8];
-					// 		PE_data_input[6]	<=	data_buffer[12];
-					// 		PE_data_input[7]	<=	data_buffer[13];
-					// 		PE_data_input[8]	<=	data_buffer[14];
-					// 	end
-					// 	2'b10	:
-					// 	begin
-					// 		PE_data_input[0]	<=	data_buffer[0];
-					// 		PE_data_input[1]	<=	data_buffer[1];
-					// 		PE_data_input[2]	<=	data_buffer[2];
-					// 		PE_data_input[3]	<=	data_buffer[6];
-					// 		PE_data_input[4]	<=	data_buffer[7];
-					// 		PE_data_input[5]	<=	data_buffer[8];
-					// 		PE_data_input[6]	<=	data_buffer[12];
-					// 		PE_data_input[7]	<=	data_buffer[13];
-					// 		PE_data_input[8]	<=	data_buffer[14];
-					// 	end
-					// 	2'b11	:
-					// 	begin
-					// 		PE_data_input[0]	<=	data_buffer[0];
-					// 		PE_data_input[1]	<=	data_buffer[1];
-					// 		PE_data_input[2]	<=	data_buffer[2];
-					// 		PE_data_input[3]	<=	data_buffer[6];
-					// 		PE_data_input[4]	<=	data_buffer[7];
-					// 		PE_data_input[5]	<=	data_buffer[8];
-					// 		PE_data_input[6]	<=	data_buffer[12];
-					// 		PE_data_input[7]	<=	data_buffer[13];
-					// 		PE_data_input[8]	<=	data_buffer[14];
-					// 	end
-					// 	default	:
-					// 	begin
-					// 		foreach(PE_data_input[i])
-					// 			PE_data_input[i]	<=	32'b0;
-					// 	end
-					// endcase
 					PE_data_input[0]	<=	data_buffer[0];
 					PE_data_input[1]	<=	data_buffer[1];
 					PE_data_input[2]	<=	data_buffer[2];
@@ -2028,162 +2425,6 @@ module controller(
 			begin
 				if(stride == 'd1)
 				begin
-					// case (mem_data_col[1:0])
-					// 	2'b00:
-					// 	begin
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	end
-					// 	2'b01:
-					// 	begin
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	end
-					// 	2'b10:
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	2'b11:
-					// 	begin
-					// 		if(oversize_count == 'b0)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[0];
-					// 			PE_data_input[1]	<=	data_buffer[6];
-					// 			PE_data_input[2]	<=	data_buffer[12];
-					// 			PE_data_input[3]	<=	data_buffer[18];
-					// 			PE_data_input[4]	<=	data_buffer[24];
-					// 			PE_data_input[5]	<=	data_buffer[1];
-					// 			PE_data_input[6]	<=	data_buffer[7];
-					// 			PE_data_input[7]	<=	data_buffer[13];
-					// 			PE_data_input[8]	<=	data_buffer[19];
-					// 		end
-					// 		else if(oversize_count == 'b1)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[24];
-					// 			PE_data_input[1]	<=	data_buffer[1];
-					// 			PE_data_input[2]	<=	data_buffer[7];
-					// 			PE_data_input[3]	<=	data_buffer[13];
-					// 			PE_data_input[4]	<=	data_buffer[19];
-					// 			PE_data_input[5]	<=	data_buffer[25];
-					// 			PE_data_input[6]	<=	data_buffer[2];
-					// 			PE_data_input[7]	<=	data_buffer[8];
-					// 			PE_data_input[8]	<=	data_buffer[14];
-					// 		end
-					// 		else if(oversize_count == 'b10)
-					// 		begin
-					// 			PE_data_input[0]	<=	data_buffer[18];
-					// 			PE_data_input[1]	<=	data_buffer[24];
-					// 			PE_data_input[2]	<=	data_buffer[1];
-					// 			PE_data_input[3]	<=	data_buffer[7];
-					// 			PE_data_input[4]	<=	data_buffer[13];
-					// 			PE_data_input[5]	<=	data_buffer[19];
-					// 			PE_data_input[6]	<=	data_buffer[25];
-					// 			PE_data_input[7]	<=	32'b0;
-					// 			PE_data_input[8]	<=	32'b0;
-					// 		end
-					// 	end
-					// endcase
 					if(oversize_count == 'b0)
 					begin
 						PE_data_input[0]	<=	data_buffer[0];
@@ -2219,6 +2460,48 @@ module controller(
 						PE_data_input[6]	<=	data_buffer[25];
 						PE_data_input[7]	<=	32'b0;
 						PE_data_input[8]	<=	32'b0;
+					end
+				end
+			end
+			else if(kernel_size == 'd1)
+			begin
+				if(stride == 'd1)
+				begin
+					if(filter_parting_map_times == 'd9)
+					begin
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[6];
+							PE_data_input[2]	<=	data_buffer[12];
+							PE_data_input[3]	<=	data_buffer[18];
+							PE_data_input[4]	<=	data_buffer[24];
+							PE_data_input[5]	<=	data_buffer[30];
+							PE_data_input[6]	<=	data_buffer[36];
+							PE_data_input[7]	<=	data_buffer[42];
+							PE_data_input[8]	<=	data_buffer[48];
+					end
+					else if(filter_parting_map_times == 'd4)
+					begin
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	data_buffer[6];
+							PE_data_input[2]	<=	data_buffer[12];
+							PE_data_input[3]	<=	data_buffer[18];
+							PE_data_input[4]	<=	'd0;
+							PE_data_input[5]	<=	'd0;
+							PE_data_input[6]	<=	'd0;
+							PE_data_input[7]	<=	'd0;
+							PE_data_input[8]	<=	'd0;
+					end
+					else if(filter_parting_map_times == 'd1)
+					begin
+							PE_data_input[0]	<=	data_buffer[0];
+							PE_data_input[1]	<=	'd0;
+							PE_data_input[2]	<=	'd0;
+							PE_data_input[3]	<=	'd0;
+							PE_data_input[4]	<=	'd0;
+							PE_data_input[5]	<=	'd0;
+							PE_data_input[6]	<=	'd0;
+							PE_data_input[7]	<=	'd0;
+							PE_data_input[8]	<=	'd0;
 					end
 				end
 			end
@@ -2279,7 +2562,7 @@ module controller(
 			if_do_bias			<=	1'b0;
 			if_do_activation	<=	2'b0;
 		end
-		else if(kernel_size == 'd3)
+		else if(kernel_size == 'd3 || kernel_size == 'd1)
 		begin
 			if((mem_access_state == S1 && cur_state != IDLE) || (pooling_enable && PE_out_col!='b0 && PE_out_row!='b0))// && cur_state == S1)
 			begin

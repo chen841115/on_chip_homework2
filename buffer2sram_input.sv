@@ -229,7 +229,7 @@ module  buffer2sram_input(
 			foreach(input_SRAM_WEN[i])
 				input_SRAM_WEN[i]	<=	'b1;
 		end
-		else if(cur_state == 4'b0011 && pre_state != 4'b0001)
+		else if(cur_state == 4'b0011 && pre_state != 4'b0010)
 			input_SRAM_WEN[sram_select]	<=	'b0;
 		else
 		begin
