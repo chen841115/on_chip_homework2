@@ -24,4 +24,5 @@ DRAM : | $(bld_dir)
 	ncverilog ../DRAM_tb.sv +access+r +incdir+$(root_dir) +prog_path=$(root_dir);
 
 clean:
-	rm -rf $(bld_dir)/INCA_libs;
+	rm -rf $(bld_dir); \
+	mkdir -p $(bld_dir);

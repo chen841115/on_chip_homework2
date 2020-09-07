@@ -86,8 +86,8 @@ module top(
 	logic	input_SRAM_CEN_write	[0:63];
 	logic	input_SRAM_rw_select	[0:63];		//0-> read 1->write
 	//weight_SRAM
-	logic	[287:0]	weight_SRAM_DI		[0:287];
-	logic	[287:0]	weight_SRAM_DO		[0:287];
+	logic	[31:0]	weight_SRAM_DI		[0:287];
+	logic	[31:0]	weight_SRAM_DO		[0:287];
 	logic	[6:0]	weight_SRAM_A		[0:287];
 	logic	weight_SRAM_CEN		[0:287];
 	logic	weight_SRAM_OEN		[0:287];

@@ -50,7 +50,7 @@ module top_tb;
 
     string prog_path;
 	integer gf, i, num, j,k, err, h, T;
-	integer	test_num = 34; 
+	
 
     top top_1(
         .clk(clk),
@@ -75,7 +75,7 @@ module top_tb;
 
     always #(`CYCLE/2) clk = ~clk;  
     
-    
+    integer	test_num = 111; 
     initial 
     begin
         clk = 0;
@@ -90,6 +90,15 @@ module top_tb;
 			map_size = 416;
 			ouput_map_size = 414;
 		end
+		else if(test_num == 15)
+		begin
+			kernel_size = 3;
+		    stride = 1;
+		    kernel_num = 32;
+		    channel = 256;
+			map_size = 52;
+			ouput_map_size = 50;
+		end
 		else if(test_num == 17)
 		begin
 			kernel_size = 3;
@@ -98,6 +107,33 @@ module top_tb;
 		    channel = 3;
 			map_size = 52;
 			ouput_map_size = 50;
+		end
+		else if(test_num == 18)
+		begin
+			kernel_size = 3;
+		    stride = 1;
+		    kernel_num = 64;
+		    channel = 512;
+			map_size = 15;
+			ouput_map_size = 13;
+		end
+		else if(test_num == 19)
+		begin
+			kernel_size = 3;
+		    stride = 1;
+		    kernel_num = 64;
+		    channel = 3;
+			map_size = 15;
+			ouput_map_size = 13;
+		end
+		else if(test_num == 111)
+		begin
+			kernel_size = 3;
+		    stride = 2;
+		    kernel_num = 1;
+		    channel = 3;
+			map_size = 51;
+			ouput_map_size = 25;
 		end
 		else if(test_num == 21)
 		begin
@@ -116,6 +152,24 @@ module top_tb;
 	        channel = 32;
 			map_size = 104;
 			ouput_map_size = 100;
+		end
+		else if(test_num == 23)
+		begin
+			kernel_size = 5;
+	        stride = 1;
+	        kernel_num = 128;
+	        channel = 64;
+			map_size = 52;
+			ouput_map_size = 48;
+		end
+		else if(test_num == 27)
+		begin
+			kernel_size = 5;
+	        stride = 1;
+	        kernel_num = 32;
+	        channel = 3;
+			map_size = 52;
+			ouput_map_size = 48;
 		end
 		else if(test_num == 31)
 		begin
@@ -162,6 +216,24 @@ module top_tb;
 			map_size = 13;
 			ouput_map_size = 13;
 		end
+		else if(test_num == 41)
+		begin
+			kernel_size = 7;
+	        stride = 1;
+	        kernel_num = 32;
+	        channel = 25;
+			map_size = 56;
+			ouput_map_size = 50;
+		end
+		else if(test_num == 43)
+		begin
+			kernel_size = 7;
+	        stride = 1;
+	        kernel_num = 32;
+	        channel = 3;
+			map_size = 56;
+			ouput_map_size = 50;
+		end
 
 		pooling = 0;
 		run = 0;
@@ -187,11 +259,35 @@ module top_tb;
 				h = 414 * 414 * 16;
 				T = 8000000;
 			end
+			15	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer5";
+				h = 50 * 50 * 32;
+				T = 6000000;
+			end
 			17	:	
 			begin
 				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer7";
 				h = 50 * 50 * 32;
 				T = 600000;
+			end
+			18	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer8";
+				h = 13 * 13 * 64;
+				T = 2000000;
+			end
+			19	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer9";
+				h = 13 * 13 * 64;
+				T = 1000000;
+			end
+			111	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer11";
+				h = 25 * 25 * 1;
+				T = 100000;
 			end
 			21	:	
 			begin
@@ -204,6 +300,18 @@ module top_tb;
 				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model2/layer2";
 				h = 100 * 100 * 64;
 				T = 10000000;
+			end
+			23	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model2/layer3";
+				h = 48 * 48 * 128;
+				T = 10000000;
+			end
+			27	:	
+			begin
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model2/layer7";
+				h = 48 * 48 * 32;
+				T = 800000;
 			end
 			31	:
 			begin	
@@ -234,6 +342,18 @@ module top_tb;
 				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model3_size_0/layer5";
 				h = 13 * 13 * 256;
 				T = 8000000;
+			end
+			41	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model4_size_7/layer1";
+				h = 50 * 50 * 32;
+				T = 6000000;
+			end
+			43	:
+			begin	
+				prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model4_size_7/layer3";
+				h = 50 * 50 * 32;
+				T = 1000000;
 			end
 			default: prog_path ="/home/hsiao/bank64AI/on_chip_homework2/DRAM_INPUT/model1/layer1";
 		endcase
