@@ -704,10 +704,20 @@ module transfer_controller(
 			'b1000:
 				if(DMA_done)
 				begin
-					if(output_sram_row_index >= row_length - kernel_size)
-						next_state	=	'b1010;
-					else
-						next_state	=	'b1001;
+					if(stride == 'd1)
+					begin
+						if(output_sram_row_index >= row_length - kernel_size)
+							next_state	=	'b1010;
+						else
+							next_state	=	'b1001;
+					end
+					else if(stride == 'd2)
+					begin
+						if(output_sram_row_index >= ((row_length - kernel_size)>>1) )
+							next_state	=	'b1010;
+						else
+							next_state	=	'b1001;
+					end
 				end
 				else
 					next_state	=	'b1000;
@@ -991,25 +1001,45 @@ module transfer_controller(
 					else if(stride == 'd2)
 					begin
 						DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-											((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
+											((output_sram_row_index + map_row[9:1]) * ouput_map_size) + `OUTPUT_START + map_col[9:1]) << 2;
 						DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-											((output_sram_row_index + map_row) * ouput_map_size) + 'd30 + `OUTPUT_START + map_col) << 2;
+											((output_sram_row_index + map_row[9:1]) * ouput_map_size) + 'd30 + `OUTPUT_START + map_col[9:1]) << 2;
 					end
 				end
 			end
 			else if(kernel_size == 'd5)
 			begin
-				DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-									((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
-				DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-									((output_sram_row_index + map_row) * ouput_map_size) + 'd59 + `OUTPUT_START + map_col) << 2;
+				if(stride == 'd1)
+				begin
+					DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
+					DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * ouput_map_size) + 'd59 + `OUTPUT_START + map_col) << 2;
+				end
+				else if(stride == 'd2)
+				begin
+					DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row[9:1]) * ouput_map_size) + `OUTPUT_START + map_col[9:1]) << 2;
+					DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row[9:1]) * ouput_map_size) + 'd28 + `OUTPUT_START + map_col[9:1]) << 2;
+				end
 			end
 			else if(kernel_size == 'd7)
 			begin
-				DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-									((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
-				DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
-									((output_sram_row_index + map_row) * ouput_map_size) + 'd57 + `OUTPUT_START + map_col) << 2;
+				if(stride == 'd1)
+				begin
+					DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * ouput_map_size) + `OUTPUT_START + map_col) << 2;
+					DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row) * ouput_map_size) + 'd57 + `OUTPUT_START + map_col) << 2;
+				end
+				else if(stride == 'd2)
+				begin
+					DRAM_ADDR_start	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row[9:1]) * ouput_map_size) + `OUTPUT_START + map_col[9:1]) << 2;
+					DRAM_ADDR_end	<=	((output_sram_map_total_size * (cur_filter + filter_index)) + 
+										((output_sram_row_index + map_row[9:1]) * ouput_map_size) + 'd26 + `OUTPUT_START + map_col[9:1]) << 2;
+				end
 			end
 			else if(kernel_size == 'd1)
 			begin
@@ -1366,9 +1396,19 @@ module transfer_controller(
 				end
 			end
 			else if(kernel_size == 'd5)
-				Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
+			begin
+				if(stride == 'd1)
+					Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
+				else if(stride == 'd2)
+					Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + ((col_length - kernel_size)>>1);
+			end
 			else if(kernel_size == 'd7)
-				Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
+			begin
+				if(stride == 'd1)
+					Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
+				else if(stride == 'd2)
+					Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + ((col_length - kernel_size)>>1);
+			end
 			else if(kernel_size == 'd1)
 				Output_SRAM_ADDR_end[11:0]	<=	(output_sram_row_index * 'd62) + col_length - kernel_size;
 		end

@@ -2,7 +2,7 @@ Magic 271485
 Revision Verdi_O-2018.09
 
 ; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
-viewPort 0 23 2560 1377 418 345
+viewPort 3840 23 1920 1017 418 345
 
 ; File list:
 ; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
@@ -16,14 +16,14 @@ signalSpacing 5
 
 ; windowTimeUnit is used for zoom, cursor & marker
 ; waveform viewport range
-zoom 176153301.622833 176870285.394501
-cursor 176385000.000000
+zoom 15594397.033692 16311380.805356
+cursor 40000.000000
 marker 0.000000
 
 ; user define markers
 ; userMarker time_pos marker_name color linestyle
 ; visible top row signal index
-top 673
+top 706
 ; marker line index
 markerPos 701
 
@@ -108,8 +108,8 @@ addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[20][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[12][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[22][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[14][31:0]
-addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[24][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[1][31:0]
+addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[24][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[16][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[3][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[18][31:0]
@@ -119,8 +119,8 @@ addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[9][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[11][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[21][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[13][31:0]
-addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[23][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[0][31:0]
+addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[23][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[15][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope buffer[2][31:0]
 addSignal -h 15 -2COMP -UDEC -holdScope buffer[0][31:0]
@@ -315,8 +315,8 @@ addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[20][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[12][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[22][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[14][31:0]
-addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[24][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[1][31:0]
+addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[24][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[16][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[3][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[18][31:0]
@@ -326,8 +326,8 @@ addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[9][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[11][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[21][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[13][31:0]
-addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[23][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[0][31:0]
+addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[23][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[15][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[2][31:0]
 addSignal -expanded -h 15 -2COMP -UDEC /top_tb/top_1/controller_1/u_PE[0]/PE_i/psum_after_mul[0:8]
@@ -773,20 +773,20 @@ addSignal -h 15 -holdScope next_col[5:0]
 addSignal -h 15 -holdScope next_row[5:0]
 addSignal -h 15 -UNSIGNED -UDEC -holdScope cur_channel[9:0]
 addSignal -h 15 -holdScope weight_SRAM_A[0:287]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[13][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[31][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[0][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[13][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[14][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[1][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[0][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[15][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[2][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[1][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[16][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[3][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[2][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[17][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[4][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[3][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[18][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[5][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[4][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[19][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[5][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[6][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[7][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[8][6:0]
@@ -803,8 +803,8 @@ addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[28][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[29][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[10][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[11][6:0]
-addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[12][6:0]
 addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[30][6:0]
+addSignal -UNSIGNED -UDEC -HIDDEN -holdScope weight_SRAM_A[12][6:0]
 addSignal -h 15 -holdScope weight_SRAM_DO[0:287]
 addSignal -h 15 -holdScope weight_SRAM_OEN[0:287]
 addSignal -h 15 /top_tb/top_1/u_input_SRAM[0]/input_SRAM_i/Data[0:15]
@@ -875,8 +875,8 @@ addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[20][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[12][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[22][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[14][31:0]
-addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[24][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[1][31:0]
+addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[24][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[16][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[3][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[18][31:0]
@@ -886,8 +886,8 @@ addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[9][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[11][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[21][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[13][31:0]
-addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[23][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[0][31:0]
+addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[23][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[15][31:0]
 addSignal -2COMP -UDEC -HIDDEN -holdScope data_buffer[2][31:0]
 addSignal -expanded -h 15 -2COMP -UDEC /top_tb/top_1/controller_1/u_PE[0]/PE_i/Input[0:8]
