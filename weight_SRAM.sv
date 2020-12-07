@@ -10,7 +10,7 @@ module weight_SRAM (
 );
 
     parameter  Words = 128;
-    parameter  Bits = 32;            
+    parameter  Bits = 8;            
     parameter  AddressSize = 7;
 
     output  [Bits-1:0] Q;

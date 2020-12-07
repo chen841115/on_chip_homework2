@@ -60,8 +60,8 @@ module controller(
 	input	[10:0]	cur_channel;
 	input	pooling_enable;
 	//output_SRAM
-	output	logic	[31:0]	output_SRAM_DI		[0:31];
-	input	logic	[31:0]	output_SRAM_DO		[0:31];
+	output	logic	[15:0]	output_SRAM_DI		[0:31];
+	input	logic	[15:0]	output_SRAM_DO		[0:31];
 	output	logic	[11:0]	output_SRAM_AA		[0:31];	//output_SRAM_DI
 	output	logic	[11:0]	output_SRAM_AB		[0:31];	//output_SRAM_DO
 	output	logic	output_SRAM_CEN;
@@ -69,14 +69,14 @@ module controller(
 	output	logic	output_SRAM_WEN				[0:31];
 	//input_SRAM
 	//logic	[127:0]	input_SRAM_DI		[0:7];
-	input	logic	[127:0]	input_SRAM_DO		[0:63];
+	input	logic	[31:0]	input_SRAM_DO		[0:63];
 	output	logic	[6:0]	input_SRAM_A		[0:63];
 	output	logic	input_SRAM_CEN	[0:63];
 	output	logic	input_SRAM_OEN	[0:63];
 	//output	logic	input_SRAM_WEN	[0:7]; 
 	//weight_SRAM
 	//logic	[287:0]	weight_SRAM_DI		[0:31];
-	input	logic	[31:0]	weight_SRAM_DO		[0:287];
+	input	logic	[7:0]	weight_SRAM_DO		[0:287];
 	output	logic	[6:0]	weight_SRAM_A		[0:287];
 	output	logic	weight_SRAM_CEN		[0:287];
 	output	logic	weight_SRAM_OEN		[0:287];
@@ -88,6 +88,7 @@ module controller(
 	//filter_parting_size1_times
 	input	[3:0]	filter_parting_map_times;
 
+	
 
 
 	//PE
@@ -98,12 +99,12 @@ module controller(
 	logic   if_do_bias;
 	logic   [1:0]   if_do_activation;       //0->no 1->relu 2->leaky relu
 	// PE
-    logic   signed	[31:0]	PE_data_input		[0:8];
-	logic   signed	[31:0]	PE_data_weight		[0:31][0:8];
-    logic   signed	[31:0]	PE_data_pre_psum	[0:31];
-    logic   signed	[31:0]  PE_data_bias		[0:31];
+    logic   signed	[7:0]	PE_data_input		[0:8];
+	logic   signed	[7:0]	PE_data_weight		[0:31][0:8];
+    logic   signed	[15:0]	PE_data_pre_psum	[0:31];
+    logic   signed	[15:0]  PE_data_bias		[0:31];
 	logic	[11:0]	PE_psum_addr				[0:31];
-    logic   signed	[31:0]  PE_data_psum_out	[0:31];
+    logic   signed	[15:0]  PE_data_psum_out	[0:31];
 	logic	[11:0]	output_sram_addr			[0:31];
 	logic	PE_done	[0:31];
 	logic	rst_PE_reg;
@@ -134,15 +135,15 @@ module controller(
 	logic	[5:0]	mem_access_input_select	[0:8];
 	logic	[5:0]	mem_data_input_select	[0:8];
 	//input_SRAM buffer
-	logic	[31:0]	data_buffer	[0:51];
+	logic	[7:0]	data_buffer	[0:51];
 	//oversize kernel
 	logic	[4:0]	oversize_count;
 	logic	[1:0]	oversize_first,mem_access_oversize_first,mem_data_oversize_first;
 	logic	oversize_part_done;
 	//max_pooling
-	logic	[31:0]	max_pooling_buffer1	[0:31];
-	logic	[31:0]	max_pooling_buffer2	[0:31];
-	logic	[31:0]	max_pooling_buffer3	[0:31];
+	logic	[15:0]	max_pooling_buffer1	[0:31];
+	logic	[15:0]	max_pooling_buffer2	[0:31];
+	logic	[15:0]	max_pooling_buffer3	[0:31];
 	logic	pooling_delay;
 	logic	state_done;
 
@@ -1505,7 +1506,7 @@ module controller(
 			end
 			else if(stride == 'd2)
 			begin
-				if(cur_col == (col_end-'d7) && cur_row == (row_end-'d7))
+				if(cur_col >= (col_end-'d7) && cur_row >= (row_end-'d7))
 					oversize_part_done   <=	1'b1;
 				else 
 					oversize_part_done   <=	1'b0;
@@ -1894,7 +1895,7 @@ module controller(
 		if(rst)
 		begin
 			foreach(output_SRAM_DI[i])
-				output_SRAM_DI[i]	<=	32'b0;
+				output_SRAM_DI[i]	<=	16'b0;
 		end
 		else if(kernel_size == 'd3)
 		begin
@@ -2058,7 +2059,7 @@ module controller(
 		if(rst)
 		begin
 			foreach(max_pooling_buffer1[i])
-				max_pooling_buffer1[i]	<=	'b0;
+				max_pooling_buffer1[i]	<=	16'b0;
 		end
 		else if(pooling_enable == 1'b1 )
 		begin
@@ -2119,11 +2120,19 @@ module controller(
 	begin
 		if(rst)
 		begin
-			foreach(PE_data_weight[i])
-			begin
-				foreach(PE_data_weight[i][j])
-					PE_data_weight[i][j]	<=	32'b0;
-			end
+			integer i,j;
+			// for(i=0;i<32;i++)
+			// begin
+			// 	for(j=0;j<9;j++)
+			// 	begin
+			// 		PE_data_weight[i][j]	<=	32'b0;
+			// 	end
+			// end
+			// foreach(PE_data_weight[i])
+			// begin
+			// 	foreach(PE_data_weight[i][j])
+			// 		PE_data_weight[i][j]	<=	32'b0;
+			// end
 		end
 		else
 		begin
@@ -2268,11 +2277,11 @@ module controller(
 							PE_data_weight[i][1] = weight_SRAM_DO[i*'d9 + 'd1];
 							PE_data_weight[i][2] = weight_SRAM_DO[i*'d9 + 'd2];
 							PE_data_weight[i][3] = weight_SRAM_DO[i*'d9 + 'd3];
-							PE_data_weight[i][4] = 'd0;
-							PE_data_weight[i][5] = 'd0;
-							PE_data_weight[i][6] = 'd0;
-							PE_data_weight[i][7] = 'd0;
-							PE_data_weight[i][8] = 'd0;
+							PE_data_weight[i][4] = 8'd0;
+							PE_data_weight[i][5] = 8'd0;
+							PE_data_weight[i][6] = 8'd0;
+							PE_data_weight[i][7] = 8'd0;
+							PE_data_weight[i][8] = 8'd0;
 						end	
 					end
 					else if(filter_parting_map_times == 'd1)
@@ -2280,14 +2289,14 @@ module controller(
 						foreach(PE_data_weight[i])
 						begin
 							PE_data_weight[i][0] = weight_SRAM_DO[i*'d9 + 'd0];
-							PE_data_weight[i][1] = 'd0;
-							PE_data_weight[i][2] = 'd0;
-							PE_data_weight[i][3] = 'd0;
-							PE_data_weight[i][4] = 'd0;
-							PE_data_weight[i][5] = 'd0;
-							PE_data_weight[i][6] = 'd0;
-							PE_data_weight[i][7] = 'd0;
-							PE_data_weight[i][8] = 'd0;
+							PE_data_weight[i][1] = 8'd0;
+							PE_data_weight[i][2] = 8'd0;
+							PE_data_weight[i][3] = 8'd0;
+							PE_data_weight[i][4] = 8'd0;
+							PE_data_weight[i][5] = 8'd0;
+							PE_data_weight[i][6] = 8'd0;
+							PE_data_weight[i][7] = 8'd0;
+							PE_data_weight[i][8] = 8'd0;
 						end	
 					end
 				end
@@ -2295,2597 +2304,6 @@ module controller(
 		end
 	end
 
-	/*
-	//data_buffer
-	always_ff @(posedge clk, posedge rst)
-	begin
-		if(rst)
-		begin
-			foreach(data_buffer[i])
-				data_buffer[i]	<=	8'b0;
-		end
-		else
-		begin
-			if(kernel_size == 'd3 && ((pooling_enable=='b1 && pooling_delay)||(pooling_enable=='b0)))
-			begin
-				if(stride == 'd1 )
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							if(mem_access_col == 6'b0)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-							end
-							else
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-							end
-						end
-						2'b01:
-						begin
-							data_buffer[0]	<=	data_buffer[1];
-							data_buffer[1]	<=	data_buffer[2];
-							data_buffer[2]	<=	data_buffer[3];
-
-							data_buffer[6]	<=	data_buffer[7];
-							data_buffer[7]	<=	data_buffer[8];
-							data_buffer[8]	<=	data_buffer[9];
-
-							data_buffer[12]	<=	data_buffer[13];
-							data_buffer[13]	<=	data_buffer[14];
-							data_buffer[14]	<=	data_buffer[15];
-						end
-						2'b10:
-						begin
-							data_buffer[0]	<=	data_buffer[1];
-							data_buffer[1]	<=	data_buffer[2];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-							data_buffer[6]	<=	data_buffer[7];
-							data_buffer[7]	<=	data_buffer[8];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-							data_buffer[12]	<=	data_buffer[13];
-							data_buffer[13]	<=	data_buffer[14];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-						end
-						2'b11:
-						begin
-							data_buffer[0]	<=	data_buffer[1];
-							data_buffer[1]	<=	data_buffer[2];
-							data_buffer[2]	<=	data_buffer[3];
-							data_buffer[3]	<=	data_buffer[4];
-							data_buffer[4]	<=	data_buffer[5];
-
-							data_buffer[6]	<=	data_buffer[7];
-							data_buffer[7]	<=	data_buffer[8];
-							data_buffer[8]	<=	data_buffer[9];
-							data_buffer[9]	<=	data_buffer[10];
-							data_buffer[10]	<=	data_buffer[11];
-
-							data_buffer[12]	<=	data_buffer[13];
-							data_buffer[13]	<=	data_buffer[14];
-							data_buffer[14]	<=	data_buffer[15];
-							data_buffer[15]	<=	data_buffer[16];
-							data_buffer[16]	<=	data_buffer[17];
-						end
-					endcase
-				end
-				else if(stride == 'd2 )
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							if(mem_access_col == 6'b0)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-							end
-							else
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	data_buffer[3];
-								data_buffer[2]	<=	data_buffer[4];
-								data_buffer[3]	<=	data_buffer[5];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	data_buffer[9];
-								data_buffer[8]	<=	data_buffer[10];
-								data_buffer[9]	<=	data_buffer[11];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	data_buffer[15];
-								data_buffer[14]	<=	data_buffer[16];
-								data_buffer[15]	<=	data_buffer[17];
-							end
-						end
-						2'b01:
-						begin
-							;
-						end
-						2'b10:
-						begin
-							data_buffer[0]	<=	data_buffer[2];
-							data_buffer[1]	<=	data_buffer[3];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-							data_buffer[6]	<=	data_buffer[8];
-							data_buffer[7]	<=	data_buffer[9];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-							data_buffer[12]	<=	data_buffer[14];
-							data_buffer[13]	<=	data_buffer[15];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-						end
-						2'b11:
-						begin
-							;
-						end
-					endcase
-				end
-			end
-			else if(kernel_size == 'd5)
-			begin
-				if(stride == 'd1)
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-									data_buffer[2]	<=	data_buffer[3];
-									data_buffer[3]	<=	data_buffer[4];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-									data_buffer[8]	<=	data_buffer[9];
-									data_buffer[9]	<=	data_buffer[10];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-									data_buffer[14]	<=	data_buffer[15];
-									data_buffer[15]	<=	data_buffer[16];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-									data_buffer[20]	<=	data_buffer[21];
-									data_buffer[21]	<=	data_buffer[22];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-									data_buffer[26]	<=	data_buffer[27];
-									data_buffer[27]	<=	data_buffer[28];
-								end
-							end
-							else if(oversize_count == 'b1)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-									data_buffer[2]	<=	data_buffer[3];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-									data_buffer[8]	<=	data_buffer[9];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-									data_buffer[14]	<=	data_buffer[15];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-									data_buffer[20]	<=	data_buffer[21];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-									data_buffer[26]	<=	data_buffer[27];
-								end
-							end
-							else if(oversize_count == 'b10)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									if(mem_access_oversize_first == 'b1)
-									begin
-										data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-										data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-									end
-									else
-									begin
-										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-									end
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-								end
-							end
-						end
-						2'b01:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[29]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-							end
-						end
-						2'b10:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-								data_buffer[4]	<=	data_buffer[5];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-								data_buffer[10]	<=	data_buffer[11];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-								data_buffer[16]	<=	data_buffer[17];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-								data_buffer[22]	<=	data_buffer[23];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-								data_buffer[28]	<=	data_buffer[29];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-							end
-						end
-						2'b11:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-							end
-						end
-					endcase
-				end
-				else if(stride == 'd2)
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	data_buffer[3];
-									data_buffer[2]	<=	data_buffer[4];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	data_buffer[9];
-									data_buffer[8]	<=	data_buffer[10];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	data_buffer[15];
-									data_buffer[14]	<=	data_buffer[16];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	data_buffer[21];
-									data_buffer[20]	<=	data_buffer[22];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	data_buffer[27];
-									data_buffer[26]	<=	data_buffer[28];
-								end
-							end
-							else if(oversize_count == 'b10)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									if(mem_access_oversize_first == 'b1)
-									begin
-										data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-										data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-									end
-									else
-									begin
-										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-									end
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-								end
-							end
-						end
-						2'b10:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	data_buffer[27];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	data_buffer[3];
-								data_buffer[2]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	data_buffer[9];
-								data_buffer[8]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	data_buffer[15];
-								data_buffer[14]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	data_buffer[21];
-								data_buffer[20]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	data_buffer[27];
-								data_buffer[26]	<=	data_buffer[28];
-							end
-						end
-					endcase
-				end
-			end
-			else if(kernel_size == 'd7)
-			begin
-				if(stride == 'd1)
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-									data_buffer[2]	<=	data_buffer[3];
-									data_buffer[3]	<=	data_buffer[4];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-									data_buffer[8]	<=	data_buffer[9];
-									data_buffer[9]	<=	data_buffer[10];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-									data_buffer[14]	<=	data_buffer[15];
-									data_buffer[15]	<=	data_buffer[16];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-									data_buffer[20]	<=	data_buffer[21];
-									data_buffer[21]	<=	data_buffer[22];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-									data_buffer[26]	<=	data_buffer[27];
-									data_buffer[27]	<=	data_buffer[28];
-									
-									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	data_buffer[32];
-									data_buffer[32]	<=	data_buffer[33];
-									data_buffer[33]	<=	data_buffer[34];
-
-									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	data_buffer[38];
-									data_buffer[38]	<=	data_buffer[39];
-									data_buffer[39]	<=	data_buffer[40];
-								end
-							end
-							else if(oversize_count == 'b1)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-									data_buffer[2]	<=	data_buffer[3];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-									data_buffer[8]	<=	data_buffer[9];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-									data_buffer[14]	<=	data_buffer[15];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-									data_buffer[20]	<=	data_buffer[21];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-									data_buffer[26]	<=	data_buffer[27];
-
-									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	data_buffer[32];
-									data_buffer[32]	<=	data_buffer[33];
-
-									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	data_buffer[38];
-									data_buffer[38]	<=	data_buffer[39];
-								end
-							end
-							else if(oversize_count == 'b10)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-
-									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	data_buffer[32];
-
-									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	data_buffer[38];
-								end
-							end
-							else if(oversize_count == 'b11)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									if(mem_access_oversize_first == 'b1)
-									begin
-										data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-									end
-									else
-									begin
-										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-										data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-										data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-										data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-										data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-										data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-										data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-										data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-										data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-									end
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-							end
-							else if(oversize_count == 'b100)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-									data_buffer[2]	<=	data_buffer[3];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-									data_buffer[8]	<=	data_buffer[9];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-									data_buffer[14]	<=	data_buffer[15];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-									data_buffer[20]	<=	data_buffer[21];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-									data_buffer[26]	<=	data_buffer[27];
-
-									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	data_buffer[32];
-									data_buffer[32]	<=	data_buffer[33];
-
-									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	data_buffer[38];
-									data_buffer[38]	<=	data_buffer[39];
-								end
-							end
-							else if(oversize_count == 'b101)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	data_buffer[2];
-
-									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	data_buffer[8];
-
-									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	data_buffer[14];
-
-									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	data_buffer[20];
-
-									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	data_buffer[26];
-
-									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	data_buffer[32];
-
-									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	data_buffer[38];
-								end
-							end
-						end
-						2'b01:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b11)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-								data_buffer[33]	<=	data_buffer[34];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-								data_buffer[39]	<=	data_buffer[40];
-							end
-							else if(oversize_count == 'b100)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b101)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-						end
-						2'b10:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-								data_buffer[33]	<=	data_buffer[34];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-								data_buffer[39]	<=	data_buffer[40];
-							end
-							else if(oversize_count == 'b11)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-							end
-							else if(oversize_count == 'b100)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b101)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-						end
-						2'b11:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-								
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-								data_buffer[33]	<=	data_buffer[34];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-								data_buffer[39]	<=	data_buffer[40];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-							end
-							else if(oversize_count == 'b11)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[29]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[35]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[41]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];								
-							end
-							else if(oversize_count == 'b100)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-								data_buffer[3]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-								data_buffer[9]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-								data_buffer[15]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-								data_buffer[21]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								data_buffer[27]	<=	data_buffer[28];
-								
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-								data_buffer[33]	<=	data_buffer[34];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-								data_buffer[39]	<=	data_buffer[40];
-							end
-							else if(oversize_count == 'b101)
-							begin
-								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	data_buffer[27];
-								
-								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	data_buffer[33];
-
-								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	data_buffer[39];
-							end
-						end
-					endcase
-				end
-				else if(stride == 'd2)
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	data_buffer[3];
-									data_buffer[2]	<=	data_buffer[4];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	data_buffer[9];
-									data_buffer[8]	<=	data_buffer[10];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	data_buffer[15];
-									data_buffer[14]	<=	data_buffer[16];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	data_buffer[21];
-									data_buffer[20]	<=	data_buffer[22];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	data_buffer[27];
-									data_buffer[26]	<=	data_buffer[28];
-									
-									data_buffer[30]	<=	data_buffer[32];
-									data_buffer[31]	<=	data_buffer[33];
-									data_buffer[32]	<=	data_buffer[34];
-
-									data_buffer[36]	<=	data_buffer[38];
-									data_buffer[37]	<=	data_buffer[39];
-									data_buffer[38]	<=	data_buffer[40];
-								end
-							end
-							else if(oversize_count == 'b10)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	data_buffer[3];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	data_buffer[9];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	data_buffer[15];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	data_buffer[21];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	data_buffer[27];
-
-									data_buffer[30]	<=	data_buffer[32];
-									data_buffer[31]	<=	data_buffer[33];
-
-									data_buffer[36]	<=	data_buffer[38];
-									data_buffer[37]	<=	data_buffer[39];
-								end
-							end
-							else if(oversize_count == 'b11)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									if(mem_access_oversize_first == 'b1)
-									begin
-										data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-									end
-									else
-									begin
-										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-										data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-										data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-										data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-										data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-										data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-										data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-										data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-										data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-									end
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	data_buffer[32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	data_buffer[38];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-							end
-							else if(oversize_count == 'b100)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	data_buffer[3];
-									data_buffer[2]	<=	data_buffer[4];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	data_buffer[9];
-									data_buffer[8]	<=	data_buffer[10];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	data_buffer[15];
-									data_buffer[14]	<=	data_buffer[16];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	data_buffer[21];
-									data_buffer[20]	<=	data_buffer[22];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	data_buffer[27];
-									data_buffer[26]	<=	data_buffer[28];
-									
-									data_buffer[30]	<=	data_buffer[32];
-									data_buffer[31]	<=	data_buffer[33];
-									data_buffer[32]	<=	data_buffer[34];
-
-									data_buffer[36]	<=	data_buffer[38];
-									data_buffer[37]	<=	data_buffer[39];
-									data_buffer[38]	<=	data_buffer[40];
-								end
-							end
-							else if(oversize_count == 'b101)
-							begin
-								if(mem_access_col == 6'b0)
-								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-								end
-								else
-								begin
-									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	data_buffer[3];
-
-									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	data_buffer[9];
-
-									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	data_buffer[15];
-
-									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	data_buffer[21];
-
-									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	data_buffer[27];
-									
-									data_buffer[30]	<=	data_buffer[32];
-									data_buffer[31]	<=	data_buffer[33];
-
-									data_buffer[36]	<=	data_buffer[38];
-									data_buffer[37]	<=	data_buffer[39];
-								end
-							end
-						end
-						2'b10:
-						begin
-							if(oversize_count == 'b0)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	data_buffer[3];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	data_buffer[9];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	data_buffer[15];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	data_buffer[21];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	data_buffer[27];
-
-								data_buffer[30]	<=	data_buffer[32];
-								data_buffer[31]	<=	data_buffer[33];
-
-								data_buffer[36]	<=	data_buffer[38];
-								data_buffer[37]	<=	data_buffer[39];
-							end
-							else if(oversize_count == 'b1)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[32];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[38];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b10)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b11)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	data_buffer[3];
-								data_buffer[2]	<=	data_buffer[4];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	data_buffer[9];
-								data_buffer[8]	<=	data_buffer[10];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	data_buffer[15];
-								data_buffer[14]	<=	data_buffer[16];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	data_buffer[21];
-								data_buffer[20]	<=	data_buffer[22];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	data_buffer[27];
-								data_buffer[26]	<=	data_buffer[28];
-								
-								data_buffer[30]	<=	data_buffer[32];
-								data_buffer[31]	<=	data_buffer[33];
-								data_buffer[32]	<=	data_buffer[34];
-
-								data_buffer[36]	<=	data_buffer[38];
-								data_buffer[37]	<=	data_buffer[39];
-								data_buffer[38]	<=	data_buffer[40];
-							end
-							else if(oversize_count == 'b100)
-							begin
-								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	data_buffer[32];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	data_buffer[38];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-							else if(oversize_count == 'b101)
-							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-							end
-						end
-					endcase
-				end
-			end
-			else if(kernel_size == 'd1)
-			begin
-				if(stride == 'd1 )
-				begin
-					case(mem_access_col[1:0])
-						2'b00:
-						begin
-							data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
-
-							data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
-
-							data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
-
-							data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-							data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-							data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-							data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-
-							data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-							data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-							data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-							data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
-
-							data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-							data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-							data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-							data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
-
-							data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-							data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-							data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-							data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
-
-							data_buffer[42]	<=	input_SRAM_DO[mem_data_input_select[7]][127:96];
-							data_buffer[43]	<=	input_SRAM_DO[mem_data_input_select[7]][95:64];
-							data_buffer[44]	<=	input_SRAM_DO[mem_data_input_select[7]][63:32];
-							data_buffer[45]	<=	input_SRAM_DO[mem_data_input_select[7]][31:0];
-
-							data_buffer[48]	<=	input_SRAM_DO[mem_data_input_select[8]][127:96];
-							data_buffer[49]	<=	input_SRAM_DO[mem_data_input_select[8]][95:64];
-							data_buffer[50]	<=	input_SRAM_DO[mem_data_input_select[8]][63:32];
-							data_buffer[51]	<=	input_SRAM_DO[mem_data_input_select[8]][31:0];
-						end
-						2'b01:
-						begin
-							data_buffer[0]	<=	data_buffer[1];
-							data_buffer[1]	<=	data_buffer[2];
-							data_buffer[2]	<=	data_buffer[3];
-
-							data_buffer[6]	<=	data_buffer[7];
-							data_buffer[7]	<=	data_buffer[8];
-							data_buffer[8]	<=	data_buffer[9];
-
-							data_buffer[12]	<=	data_buffer[13];
-							data_buffer[13]	<=	data_buffer[14];
-							data_buffer[14]	<=	data_buffer[15];
-
-							data_buffer[18]	<=	data_buffer[19];
-							data_buffer[19]	<=	data_buffer[20];
-							data_buffer[20]	<=	data_buffer[21];
-
-							data_buffer[24]	<=	data_buffer[25];
-							data_buffer[25]	<=	data_buffer[26];
-							data_buffer[26]	<=	data_buffer[27];
-
-							data_buffer[30]	<=	data_buffer[31];
-							data_buffer[31]	<=	data_buffer[32];
-							data_buffer[32]	<=	data_buffer[33];
-
-							data_buffer[36]	<=	data_buffer[37];
-							data_buffer[37]	<=	data_buffer[38];
-							data_buffer[38]	<=	data_buffer[39];
-
-							data_buffer[42]	<=	data_buffer[43];
-							data_buffer[43]	<=	data_buffer[44];
-							data_buffer[44]	<=	data_buffer[45];
-
-							data_buffer[48]	<=	data_buffer[49];
-							data_buffer[49]	<=	data_buffer[50];
-							data_buffer[50]	<=	data_buffer[51];
-						end
-						2'b10:
-						begin
-							data_buffer[0]	<=	data_buffer[1];
-							data_buffer[1]	<=	data_buffer[2];
-
-							data_buffer[6]	<=	data_buffer[7];
-							data_buffer[7]	<=	data_buffer[8];
-
-							data_buffer[12]	<=	data_buffer[13];
-							data_buffer[13]	<=	data_buffer[14];
-
-							data_buffer[18]	<=	data_buffer[19];
-							data_buffer[19]	<=	data_buffer[20];
-
-							data_buffer[24]	<=	data_buffer[25];
-							data_buffer[25]	<=	data_buffer[26];
-
-							data_buffer[30]	<=	data_buffer[31];
-							data_buffer[31]	<=	data_buffer[32];
-
-							data_buffer[36]	<=	data_buffer[37];
-							data_buffer[37]	<=	data_buffer[38];
-
-							data_buffer[42]	<=	data_buffer[43];
-							data_buffer[43]	<=	data_buffer[44];
-
-							data_buffer[48]	<=	data_buffer[49];
-							data_buffer[49]	<=	data_buffer[50];
-						end
-						2'b11:
-						begin
-							data_buffer[0]	<=	data_buffer[1];
-
-							data_buffer[6]	<=	data_buffer[7];
-
-							data_buffer[12]	<=	data_buffer[13];
-
-							data_buffer[18]	<=	data_buffer[19];
-
-							data_buffer[24]	<=	data_buffer[25];
-
-							data_buffer[30]	<=	data_buffer[31];
-
-							data_buffer[36]	<=	data_buffer[37];
-
-							data_buffer[42]	<=	data_buffer[43];
-
-							data_buffer[48]	<=	data_buffer[49];
-						end
-					endcase
-				end
-			end
-		end
-	end
-	*/
 
 	//data_buffer 2
 	always_ff @(posedge clk, posedge rst)
@@ -4903,20 +2321,20 @@ module controller(
 				begin
 					if(mem_access_col == 6'b0)
 					begin
-						data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-						data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-						data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 					end
 					else if(mem_access_col[1:0] == 2'b00 ||
 							mem_access_col[1:0] == 2'b01 || mem_access_col[1:0] == 2'b11)
@@ -4943,24 +2361,24 @@ module controller(
 					begin
 						data_buffer[0]	<=	data_buffer[1];
 						data_buffer[1]	<=	data_buffer[2];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 						data_buffer[6]	<=	data_buffer[7];
 						data_buffer[7]	<=	data_buffer[8];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 						data_buffer[12]	<=	data_buffer[13];
 						data_buffer[13]	<=	data_buffer[14];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 					end
 				end
 				else if(stride == 'd2 )
@@ -4970,20 +2388,20 @@ module controller(
 						begin
 							if(mem_access_col == 6'b0)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 							end
 							else
 							begin
@@ -5011,24 +2429,24 @@ module controller(
 						begin
 							data_buffer[0]	<=	data_buffer[2];
 							data_buffer[1]	<=	data_buffer[3];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+							data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 							data_buffer[6]	<=	data_buffer[8];
 							data_buffer[7]	<=	data_buffer[9];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+							data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 							data_buffer[12]	<=	data_buffer[14];
 							data_buffer[13]	<=	data_buffer[15];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+							data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 						end
 						2'b11:
 						begin
@@ -5046,86 +2464,86 @@ module controller(
 						case(oversize_count)
 							'b00:
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 							end
 							'b01:
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 							end
 							'b10:
 							begin
 								if(mem_access_oversize_first == 'b1)
 								begin
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 								end
 								else
 								begin
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 								end
 							end
 						endcase
@@ -5169,71 +2587,71 @@ module controller(
 							(mem_access_col[1:0] == 2'b11 && oversize_count == 'b0))
 					begin
 						data_buffer[0]	<=	data_buffer[1];
-						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 						data_buffer[6]	<=	data_buffer[7];
-						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 						data_buffer[12]	<=	data_buffer[13];
-						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 						data_buffer[18]	<=	data_buffer[19];
-						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-						data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+						data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 						data_buffer[24]	<=	data_buffer[25];
-						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-						data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+						data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 					end
 					else if(mem_access_col[1:0] == 2'b01 && oversize_count == 'b1)
 					begin
 						data_buffer[0]	<=	data_buffer[1];
 						data_buffer[1]	<=	data_buffer[2];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 						data_buffer[6]	<=	data_buffer[7];
 						data_buffer[7]	<=	data_buffer[8];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 						data_buffer[12]	<=	data_buffer[13];
 						data_buffer[13]	<=	data_buffer[14];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 						data_buffer[18]	<=	data_buffer[19];
 						data_buffer[19]	<=	data_buffer[20];
-						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-						data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-						data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+						data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+						data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 						data_buffer[24]	<=	data_buffer[25];
 						data_buffer[25]	<=	data_buffer[26];
-						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-						data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-						data_buffer[29]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+						data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+						data_buffer[29]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 					end
 				end
 				else if(stride == 'd2)
@@ -5242,85 +2660,85 @@ module controller(
 					begin
 						if(mem_access_oversize_first == 'b1)
 						begin
-							data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
-							data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+							data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
+							data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 						end
 						else
 						begin
-							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+							data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+							data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+							data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-							data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-							data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-							data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-							data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+							data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+							data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+							data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+							data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-							data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-							data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-							data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-							data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+							data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+							data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+							data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+							data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 						end
 					end
 					else if(mem_access_col == 6'b0 && oversize_count == 'b1)
 					begin
-						data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-						data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-						data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-						data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+						data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-						data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+						data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 					end
 					else if(mem_access_col[1:0] == 2'b00 && oversize_count == 'b0)
 					begin
-						data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-						data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-						data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-						data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+						data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-						data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+						data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 					end
 					else if((mem_access_col[1:0] == 2'b00 && oversize_count == 'b1)||
 							(mem_access_col[1:0] == 2'b10 && oversize_count == 'b0)||
@@ -5350,34 +2768,34 @@ module controller(
 							(mem_access_col[1:0] == 2'b10 && oversize_count == 'b1))
 					begin
 						data_buffer[0]	<=	data_buffer[2];
-						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+						data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+						data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+						data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+						data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 						data_buffer[6]	<=	data_buffer[8];
-						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+						data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+						data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+						data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+						data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 						data_buffer[12]	<=	data_buffer[14];
-						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+						data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+						data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+						data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+						data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 						data_buffer[18]	<=	data_buffer[20];
-						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-						data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+						data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+						data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+						data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+						data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 						data_buffer[24]	<=	data_buffer[26];
-						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-						data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+						data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+						data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+						data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+						data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 					end
 				end
 			end
@@ -5392,40 +2810,40 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -5469,33 +2887,33 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -5532,26 +2950,26 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -5583,122 +3001,122 @@ module controller(
 								begin
 									if(mem_access_oversize_first == 'b1)
 									begin
-										data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+										data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 									end
 									else
 									begin
-										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-										data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-										data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-										data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-										data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+										data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+										data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+										data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+										data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-										data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-										data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-										data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-										data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+										data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+										data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+										data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+										data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 									end
 								end
 								else
 								begin
 									data_buffer[0]	<=	data_buffer[1];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 									data_buffer[6]	<=	data_buffer[7];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 									data_buffer[12]	<=	data_buffer[13];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 									data_buffer[18]	<=	data_buffer[19];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 									data_buffer[24]	<=	data_buffer[25];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 									data_buffer[30]	<=	data_buffer[31];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 									data_buffer[36]	<=	data_buffer[37];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 							end
 							else if(oversize_count == 'b100)
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -5735,26 +3153,26 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -5839,46 +3257,46 @@ module controller(
 							else if(oversize_count == 'b10)
 							begin
 								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b11)
 							begin
@@ -5919,42 +3337,42 @@ module controller(
 							end
 							else if(oversize_count == 'b100)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b101)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 						end
 						2'b10:
@@ -5985,46 +3403,46 @@ module controller(
 							else if(oversize_count == 'b1)
 							begin
 								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b10)
 							begin
@@ -6096,83 +3514,83 @@ module controller(
 							else if(oversize_count == 'b100)
 							begin
 								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b101)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 						end
 						2'b11:
@@ -6180,46 +3598,46 @@ module controller(
 							if(oversize_count == 'b0)
 							begin
 								data_buffer[0]	<=	data_buffer[1];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[7];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[13];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[19];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[25];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[31];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[37];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b1)
 							begin
@@ -6292,52 +3710,52 @@ module controller(
 							begin
 								data_buffer[0]	<=	data_buffer[1];
 								data_buffer[1]	<=	data_buffer[2];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[5]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[7];
 								data_buffer[7]	<=	data_buffer[8];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[11]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[13];
 								data_buffer[13]	<=	data_buffer[14];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[17]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[19];
 								data_buffer[19]	<=	data_buffer[20];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[23]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[25];
 								data_buffer[25]	<=	data_buffer[26];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[29]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[29]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[31];
 								data_buffer[31]	<=	data_buffer[32];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[35]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[35]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[37];
 								data_buffer[37]	<=	data_buffer[38];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[41]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];								
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[41]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];								
 							end
 							else if(oversize_count == 'b100)
 							begin
@@ -6416,72 +3834,72 @@ module controller(
 						begin
 							if(oversize_count == 'b0)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b1)
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -6518,26 +3936,26 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -6569,122 +3987,122 @@ module controller(
 								begin
 									if(mem_access_oversize_first == 'b1)
 									begin
-										data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+										data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 									end
 									else
 									begin
-										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+										data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+										data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+										data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+										data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+										data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+										data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+										data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+										data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+										data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+										data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+										data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+										data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+										data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+										data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+										data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+										data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+										data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+										data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+										data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+										data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-										data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-										data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-										data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-										data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+										data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+										data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+										data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+										data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-										data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-										data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-										data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-										data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+										data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+										data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+										data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+										data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 									end
 								end
 								else
 								begin
 									data_buffer[0]	<=	data_buffer[2];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 									data_buffer[6]	<=	data_buffer[8];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 									data_buffer[12]	<=	data_buffer[14];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 									data_buffer[18]	<=	data_buffer[20];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 									data_buffer[24]	<=	data_buffer[26];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 									data_buffer[30]	<=	data_buffer[32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 									data_buffer[36]	<=	data_buffer[38];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 							end
 							else if(oversize_count == 'b100)
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -6721,26 +4139,26 @@ module controller(
 							begin
 								if(mem_access_col == 6'b0)
 								begin
-									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+									data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+									data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+									data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+									data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+									data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+									data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+									data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+									data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+									data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+									data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+									data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+									data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+									data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+									data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 								end
 								else
 								begin
@@ -6795,83 +4213,83 @@ module controller(
 							else if(oversize_count == 'b1)
 							begin
 								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[32];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[38];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b10)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b11)
 							begin
@@ -6906,83 +4324,83 @@ module controller(
 							else if(oversize_count == 'b100)
 							begin
 								data_buffer[0]	<=	data_buffer[2];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[4]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
 								data_buffer[6]	<=	data_buffer[8];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[10]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
 								data_buffer[12]	<=	data_buffer[14];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[16]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
 								data_buffer[18]	<=	data_buffer[20];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[22]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
 								data_buffer[24]	<=	data_buffer[26];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[28]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
 								data_buffer[30]	<=	data_buffer[32];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[34]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
 								data_buffer[36]	<=	data_buffer[38];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[40]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 							else if(oversize_count == 'b101)
 							begin
-								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+								data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+								data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+								data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+								data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+								data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+								data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+								data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+								data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+								data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+								data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+								data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+								data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+								data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+								data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+								data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+								data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+								data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+								data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+								data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+								data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+								data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+								data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+								data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+								data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+								data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+								data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+								data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+								data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 							end
 						end
 					endcase
@@ -6995,50 +4413,50 @@ module controller(
 					case(mem_access_col[1:0])
 						2'b00:
 						begin
-							data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][127:96];
-							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][95:64];
-							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][63:32];
-							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][31:0];
+							data_buffer[0]	<=	input_SRAM_DO[mem_data_input_select[0]][31:24];
+							data_buffer[1]	<=	input_SRAM_DO[mem_data_input_select[0]][23:16];
+							data_buffer[2]	<=	input_SRAM_DO[mem_data_input_select[0]][15:8];
+							data_buffer[3]	<=	input_SRAM_DO[mem_data_input_select[0]][7:0];
 
-							data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][127:96];
-							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][95:64];
-							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][63:32];
-							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][31:0];
+							data_buffer[6]	<=	input_SRAM_DO[mem_data_input_select[1]][31:24];
+							data_buffer[7]	<=	input_SRAM_DO[mem_data_input_select[1]][23:16];
+							data_buffer[8]	<=	input_SRAM_DO[mem_data_input_select[1]][15:8];
+							data_buffer[9]	<=	input_SRAM_DO[mem_data_input_select[1]][7:0];
 
-							data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][127:96];
-							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][95:64];
-							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][63:32];
-							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][31:0];
+							data_buffer[12]	<=	input_SRAM_DO[mem_data_input_select[2]][31:24];
+							data_buffer[13]	<=	input_SRAM_DO[mem_data_input_select[2]][23:16];
+							data_buffer[14]	<=	input_SRAM_DO[mem_data_input_select[2]][15:8];
+							data_buffer[15]	<=	input_SRAM_DO[mem_data_input_select[2]][7:0];
 
-							data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][127:96];
-							data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][95:64];
-							data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][63:32];
-							data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][31:0];
+							data_buffer[18]	<=	input_SRAM_DO[mem_data_input_select[3]][31:24];
+							data_buffer[19]	<=	input_SRAM_DO[mem_data_input_select[3]][23:16];
+							data_buffer[20]	<=	input_SRAM_DO[mem_data_input_select[3]][15:8];
+							data_buffer[21]	<=	input_SRAM_DO[mem_data_input_select[3]][7:0];
 
-							data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][127:96];
-							data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][95:64];
-							data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][63:32];
-							data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][31:0];
+							data_buffer[24]	<=	input_SRAM_DO[mem_data_input_select[4]][31:24];
+							data_buffer[25]	<=	input_SRAM_DO[mem_data_input_select[4]][23:16];
+							data_buffer[26]	<=	input_SRAM_DO[mem_data_input_select[4]][15:8];
+							data_buffer[27]	<=	input_SRAM_DO[mem_data_input_select[4]][7:0];
 
-							data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][127:96];
-							data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][95:64];
-							data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][63:32];
-							data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][31:0];
+							data_buffer[30]	<=	input_SRAM_DO[mem_data_input_select[5]][31:24];
+							data_buffer[31]	<=	input_SRAM_DO[mem_data_input_select[5]][23:16];
+							data_buffer[32]	<=	input_SRAM_DO[mem_data_input_select[5]][15:8];
+							data_buffer[33]	<=	input_SRAM_DO[mem_data_input_select[5]][7:0];
 
-							data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][127:96];
-							data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][95:64];
-							data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][63:32];
-							data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][31:0];
+							data_buffer[36]	<=	input_SRAM_DO[mem_data_input_select[6]][31:24];
+							data_buffer[37]	<=	input_SRAM_DO[mem_data_input_select[6]][23:16];
+							data_buffer[38]	<=	input_SRAM_DO[mem_data_input_select[6]][15:8];
+							data_buffer[39]	<=	input_SRAM_DO[mem_data_input_select[6]][7:0];
 
-							data_buffer[42]	<=	input_SRAM_DO[mem_data_input_select[7]][127:96];
-							data_buffer[43]	<=	input_SRAM_DO[mem_data_input_select[7]][95:64];
-							data_buffer[44]	<=	input_SRAM_DO[mem_data_input_select[7]][63:32];
-							data_buffer[45]	<=	input_SRAM_DO[mem_data_input_select[7]][31:0];
+							data_buffer[42]	<=	input_SRAM_DO[mem_data_input_select[7]][31:24];
+							data_buffer[43]	<=	input_SRAM_DO[mem_data_input_select[7]][23:16];
+							data_buffer[44]	<=	input_SRAM_DO[mem_data_input_select[7]][15:8];
+							data_buffer[45]	<=	input_SRAM_DO[mem_data_input_select[7]][7:0];
 
-							data_buffer[48]	<=	input_SRAM_DO[mem_data_input_select[8]][127:96];
-							data_buffer[49]	<=	input_SRAM_DO[mem_data_input_select[8]][95:64];
-							data_buffer[50]	<=	input_SRAM_DO[mem_data_input_select[8]][63:32];
-							data_buffer[51]	<=	input_SRAM_DO[mem_data_input_select[8]][31:0];
+							data_buffer[48]	<=	input_SRAM_DO[mem_data_input_select[8]][31:24];
+							data_buffer[49]	<=	input_SRAM_DO[mem_data_input_select[8]][23:16];
+							data_buffer[50]	<=	input_SRAM_DO[mem_data_input_select[8]][15:8];
+							data_buffer[51]	<=	input_SRAM_DO[mem_data_input_select[8]][7:0];
 						end
 						2'b01:
 						begin
@@ -7145,7 +4563,7 @@ module controller(
 		if(rst)
 		begin
 			foreach(PE_data_input[i])
-				PE_data_input[i]	<=	32'b0;
+				PE_data_input[i]	<=	8'b0;
 		end
 		else
 		begin
@@ -7201,8 +4619,8 @@ module controller(
 						PE_data_input[4]	<=	data_buffer[13];
 						PE_data_input[5]	<=	data_buffer[19];
 						PE_data_input[6]	<=	data_buffer[25];
-						PE_data_input[7]	<=	32'b0;
-						PE_data_input[8]	<=	32'b0;
+						PE_data_input[7]	<=	8'b0;
+						PE_data_input[8]	<=	8'b0;
 					end
 				end
 			end
@@ -7276,11 +4694,11 @@ module controller(
 						PE_data_input[1]	<=	data_buffer[24];
 						PE_data_input[2]	<=	data_buffer[30];
 						PE_data_input[3]	<=	data_buffer[36];
-						PE_data_input[4]	<=	'd0;
-						PE_data_input[5]	<=	'd0;
-						PE_data_input[6]	<=	'd0;
-						PE_data_input[7]	<=	'd0;
-						PE_data_input[8]	<=	'd0;
+						PE_data_input[4]	<=	8'd0;
+						PE_data_input[5]	<=	8'd0;
+						PE_data_input[6]	<=	8'd0;
+						PE_data_input[7]	<=	8'd0;
+						PE_data_input[8]	<=	8'd0;
 					end
 				end
 			end
@@ -7306,23 +4724,23 @@ module controller(
 							PE_data_input[1]	<=	data_buffer[6];
 							PE_data_input[2]	<=	data_buffer[12];
 							PE_data_input[3]	<=	data_buffer[18];
-							PE_data_input[4]	<=	'd0;
-							PE_data_input[5]	<=	'd0;
-							PE_data_input[6]	<=	'd0;
-							PE_data_input[7]	<=	'd0;
-							PE_data_input[8]	<=	'd0;
+							PE_data_input[4]	<=	8'd0;
+							PE_data_input[5]	<=	8'd0;
+							PE_data_input[6]	<=	8'd0;
+							PE_data_input[7]	<=	8'd0;
+							PE_data_input[8]	<=	8'd0;
 					end
 					else if(filter_parting_map_times == 'd1)
 					begin
 							PE_data_input[0]	<=	data_buffer[0];
-							PE_data_input[1]	<=	'd0;
-							PE_data_input[2]	<=	'd0;
-							PE_data_input[3]	<=	'd0;
-							PE_data_input[4]	<=	'd0;
-							PE_data_input[5]	<=	'd0;
-							PE_data_input[6]	<=	'd0;
-							PE_data_input[7]	<=	'd0;
-							PE_data_input[8]	<=	'd0;
+							PE_data_input[1]	<=	8'd0;
+							PE_data_input[2]	<=	8'd0;
+							PE_data_input[3]	<=	8'd0;
+							PE_data_input[4]	<=	8'd0;
+							PE_data_input[5]	<=	8'd0;
+							PE_data_input[6]	<=	8'd0;
+							PE_data_input[7]	<=	8'd0;
+							PE_data_input[8]	<=	8'd0;
 					end
 				end
 			end
@@ -7336,14 +4754,14 @@ module controller(
 		if(rst)
 		begin
 			foreach(PE_data_pre_psum[i])
-				PE_data_pre_psum[i]	<=	32'b0;
+				PE_data_pre_psum[i]	<=	16'b0;
 			foreach(PE_data_pre_psum[i])
-				max_pooling_buffer2[i]	<=	32'b0;
+				max_pooling_buffer2[i]	<=	16'b0;
 		end
 		else if((act_cur_channel == 1'b0 && oversize_count == 1'b0) || cur_state == IDLE)
 		begin
 			foreach(PE_data_pre_psum[i])
-				PE_data_pre_psum[i]	<=	32'b0;
+				PE_data_pre_psum[i]	<=	16'b0;
 		end
 		else
 		begin
@@ -7522,71 +4940,3 @@ module controller(
 	endgenerate
 	
 endmodule
-// 	//PE data
-// 	//weight
-// 	always_comb
-// 	begin
-// 		foreach(PE_data_weight[i])
-// 		begin
-// 			PE_data_weight[i][0] = weight_SRAM_DO[i][287:256];
-// 			PE_data_weight[i][1] = weight_SRAM_DO[i][255:224];
-// 			PE_data_weight[i][2] = weight_SRAM_DO[i][223:192];
-// 			PE_data_weight[i][3] = weight_SRAM_DO[i][191:160];
-// 			PE_data_weight[i][4] = weight_SRAM_DO[i][159:128];
-// 			PE_data_weight[i][5] = weight_SRAM_DO[i][127:96];
-// 			PE_data_weight[i][6] = weight_SRAM_DO[i][95:64];
-// 			PE_data_weight[i][7] = weight_SRAM_DO[i][63:32];
-// 			PE_data_weight[i][8] = weight_SRAM_DO[i][31:0];
-// 		end
-// 	end
-// 	//input
-// 	assign predict_tmp3 = mem_data_row[2:0];
-// 	always_comb
-// 	begin
-// 		foreach(PE_data_input[i])
-// 		begin
-// 			if(kernel_size == 'd3)
-// 			begin
-// 				if(stride == 'd1)
-// 				begin
-// 					case (PE_data_input[i][1:0])
-// 						2'b00	:
-// 						begin
-// 							if(predict_tmp3 == 'd7)
-// 							begin
-// 								PE_data_input[0] = input_SRAM_DO[]
-// 							end
-// 						end
-// 					endcase
-// 				end
-// 			end
-// 		end
-// 	end
-// 	//psum
-// 	always_comb
-// 	begin
-// 		foreach(PE_data_pre_psum[i])
-// 		begin
-// 			PE_data_pre_psum[i] = output_SRAM_DO[i];
-// 		end
-// 	end
-	
-// 	//PE control
-// 	always_ff @(posedge clk, posedge rst)
-// 	begin
-// 		if(rst)
-// 		begin
-// 			read_input_enable	<=	1'b0;
-// 			read_weight_enable	<=	1'b0;
-// 			read_psum_enable	<=	1'b0;
-// 			read_bias_enable	<=	1'b0;
-// 			if_do_bias			<=	1'b0;
-// 			if_do_activation	<=	2'b0;
-// 		end
-// 		else if(mem_access_state == S1)
-// 		begin
-// 			read_input_enable	<=	1'b1;
-// 			read_weight_enable	<=	1'b1;
-// 			read_psum_enable	<=	1'b1;
-// 		end
-// 	end

@@ -17,7 +17,7 @@ module output_SRAM (
 );
 
     parameter  Words = 4096;
-    parameter  Bits = 32;            
+    parameter  Bits = 16;            
     parameter  AddressSize = 12;
 
     output  [Bits-1:0] QA;

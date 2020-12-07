@@ -33,28 +33,28 @@ module PE (
     input	if_do_bias;
     input	[1:0]	if_do_activation; //0->no 1->relu 2->leaky relu
     // Input Ports
-    input	signed  [31:0]	Input [0:8];
-    input	signed  [31:0]	Weight [0:8];
-    input	signed  [31:0]	Pre_psum;
-    input	signed  [31:0]	Bias;
+    input	signed  [7:0]	Input [0:8];
+    input	signed  [7:0]	Weight [0:8];
+    input	signed  [15:0]	Pre_psum;
+    input	signed  [15:0]	Bias;
     input   [11:0]  Psum_addr;
     // Output Ports
-    output	logic	signed  [31:0]	Psum_out;
+    output	logic	signed  [15:0]	Psum_out;
     output	logic   [11:0]  output_sram_addr;
     output	logic   PE_done;
     // Inner Data
 	//From SRAM
-    logic	signed  [31:0]	reg_weight [0:8];
-    logic	signed  [31:0]	reg_input [0:8];
-    logic	signed  [31:0]	reg_pre_psum;
-    logic	signed  [31:0]  reg_bias;
+    logic	signed  [15:0]	reg_weight [0:8];
+    logic	signed  [15:0]	reg_input [0:8];
+    logic	signed  [15:0]	reg_pre_psum;
+    logic	signed  [15:0]  reg_bias;
 
-    logic	signed  [31:0]	psum_after_mul [0:8];
-	logic	signed  [31:0]	psum_befor_add [0:8];
-    logic   signed  [31:0]  pre_psum_befor_add;
-    logic   signed  [31:0]	psum_after_add;   //24bit -> 16bit
-    logic   signed  [31:0]	psum_after_bias;
-    logic   signed  [31:0]	psum_after_activation;
+    logic	signed  [15:0]	psum_after_mul [0:8];   //psum_after_mul >>pipeline>> psum_befor_add
+	logic	signed  [15:0]	psum_befor_add [0:8];
+    logic   signed  [15:0]  pre_psum_befor_add;
+    logic   signed  [19:0]	psum_after_add;   //24bit -> 16bit
+    logic   signed  [19:0]	psum_after_bias;
+    logic   signed  [19:0]	psum_after_activation;
 
     logic   [11:0]  mult_addr,add_addr;
     logic   mult_done,add_done;
@@ -115,7 +115,7 @@ module PE (
         if(rst) 
         	Psum_out	<=	32'd0;
         else 
-            Psum_out    <=  psum_after_activation;
+            Psum_out    <=  psum_after_activation[15:0];
     end
 
     // SRAM to Reg

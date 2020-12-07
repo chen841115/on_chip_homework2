@@ -1,10 +1,9 @@
-`timescale 1 ns/1 ps
+`timescale 1 ns/100 ps
 `include "controller.sv"
 `include "output_SRAM.sv"
 `include "weight_SRAM.sv"
 `include "input_SRAM.sv"
 `include "DRAM.v"
-`include "ping_pong.sv"
 `include "DMA.sv"
 `include "buffer2sram_input.sv"
 `include "transfer_controller.sv"
@@ -24,14 +23,71 @@ module top(
 	map_size,
 	ouput_map_size,
 	pooling,
+	//DMA
+	DRAM_ADDR_start,
+    DRAM_ADDR_end,
+    BUF_ADDR_start_write,
+	BUF_ADDR_end_write,
+	WEIGHT_SRAM_ADDR_start,
+	WEIGHT_SRAM_ADDR_end,
+	Output_SRAM_ADDR_start,
+	Output_SRAM_ADDR_end,
+    DMA_start,
+    DMA_done,
+    SRAM_type,
+    buf_select,
+	DMA_type,
+	filter_parting_map_times,
+	filter_parting_map_count,
+	//DMA data
+	weight_SRAM_A_write_w,
+	weight_SRAM_CEN_write_w,
+	weight_SRAM_WEN_write_w,
+	input_buffer_A_write_w,
+	input_buffer_WEN_write_w,
+	input_buffer_CEN_write_w,
+	output_SRAM_DO_DMA_w,
+	output_SRAM_AB_DMA_w,
+	output_SRAM_CEN_DMA_w,
+	output_SRAM_OEN_DMA_w,
 	//DRAM
-	Q,
-	CSn,
-	WEn,
-	RASn,
-	CASn,
-	A,
-	D
+	// Q,
+	// CSn,
+	// WEn,
+	// RASn,
+	// CASn,
+	// A,
+	// D,
+	//SRAM
+	//input_SRAM
+	input_SRAM_DI_w,
+	input_SRAM_DO_w,
+	input_SRAM_A_w,
+	input_SRAM_CEN_w,
+	input_SRAM_OEN_w,
+	input_SRAM_WEN_w,
+	//output_SRAM
+	output_SRAM_DI_w,
+	output_SRAM_DO_w,
+	output_SRAM_AA_w,	//output_SRAM_DI
+	output_SRAM_AB_w,	//output_SRAM_DO
+	output_SRAM_CEN_w,
+	output_SRAM_OEN_w,
+	output_SRAM_WEN_w,
+	//weight_SRAM
+	//weight_SRAM_DI_w,
+	weight_SRAM_DO_w,
+	weight_SRAM_A_w,
+	weight_SRAM_CEN_w,
+	weight_SRAM_OEN_w,
+	weight_SRAM_WEN_w,
+	//input buffer
+	//input_buffer_DI_w,
+	input_buffer_DO_w,
+	input_buffer_A_w,
+	input_buffer_CEN_w,
+	input_buffer_OEN_w,
+	input_buffer_WEN_w
 );
 
     // Input Ports: clock and control signals
@@ -45,18 +101,77 @@ module top(
 	input	[9:0]	map_size;
 	input	[9:0]	ouput_map_size;
 	input	[1:0]	pooling;
+	//DMA address start end
+	output  logic   [31:0]  DRAM_ADDR_start;
+    output  logic   [31:0]  DRAM_ADDR_end;
+    output  logic   [6:0]	BUF_ADDR_start_write;
+	output  logic   [6:0]	BUF_ADDR_end_write;
+	output  logic	[15:0]	WEIGHT_SRAM_ADDR_start;
+	output  logic	[15:0]	WEIGHT_SRAM_ADDR_end;
+	output  logic   [17:0]  Output_SRAM_ADDR_start;
+    output  logic   [17:0]  Output_SRAM_ADDR_end;
+	//DMA address signal
+	output  logic   DMA_start;
+	output  logic	DMA_type;	//0->read 1->write
+	output  logic   SRAM_type;		//0->input 1->weight
+    output  logic   buf_select;
+	input	DMA_done;
+	output  logic	[3:0]	filter_parting_map_times;
+	output  logic	[3:0]	filter_parting_map_count;
+	//DMA data
+	input	[2015:0]	weight_SRAM_A_write_w;
+	input	[287:0]	weight_SRAM_CEN_write_w;
+	input	[287:0]	weight_SRAM_WEN_write_w;
+	input	[13:0]	input_buffer_A_write_w;
+	input	[1:0]	input_buffer_WEN_write_w;
+	input	[1:0]	input_buffer_CEN_write_w;
+	output  logic	[511:0]	output_SRAM_DO_DMA_w;
+	input	[383:0]	output_SRAM_AB_DMA_w;	//output_SRAM_DO
+	input	output_SRAM_CEN_DMA_w;
+	input	output_SRAM_OEN_DMA_w;
 	//DRAM
-	input	[31:0]	Q;				//Data Output
-	output	logic	CSn;			//Chip Select
-	output	logic	[3:0]	WEn;	//Write Enable
-	output	logic	RASn;			//Row Address Select
-	output	logic	CASn;			//Column Address Select
-	output	logic	[12:0]	A;		//Address
-	output	logic	[31:0]	D;		//Data Input
+	// input	[31:0]	Q;				//Data Output
+	// output	logic	CSn;			//Chip Select
+	// output	logic	[3:0]	WEn;	//Write Enable
+	// output	logic	RASn;			//Row Address Select
+	// output	logic	CASn;			//Column Address Select
+	// output	logic	[12:0]	A;		//Address
+	// output	logic	[31:0]	D;		//Data Input
+	//SRAM
+	//wire
+	//input_SRAM
+	output	logic	[2047:0]	input_SRAM_DI_w;
+	input	[2047:0]	input_SRAM_DO_w;
+	output	logic	[447:0]	input_SRAM_A_w;
+	output	logic	[63:0]	input_SRAM_CEN_w;
+	output	logic	[63:0]	input_SRAM_OEN_w;
+	output	logic	[63:0]	input_SRAM_WEN_w; 
+	//output_SRAM
+	output	logic	[511:0]	output_SRAM_DI_w;
+	input	[511:0]	output_SRAM_DO_w;
+	output	logic	[383:0]	output_SRAM_AA_w;	//output_SRAM_DI
+	output	logic	[383:0]	output_SRAM_AB_w;	//output_SRAM_DO
+	output	logic	output_SRAM_CEN_w;
+	output	logic	output_SRAM_OEN_w;
+	output	logic	[31:0]	output_SRAM_WEN_w;
+	//weight_SRAM
+	//output	logic	[9215:0]	weight_SRAM_DI_w;
+	input	[2303:0]	weight_SRAM_DO_w;	//288*8=2304
+	output	logic	[2015:0]	weight_SRAM_A_w;
+	output	logic	[287:0]	weight_SRAM_CEN_w;
+	output	logic	[287:0]	weight_SRAM_OEN_w;
+	output	logic	[287:0]	weight_SRAM_WEN_w;
+	//input buffer
+	//output	logic	[255:0]	input_buffer_DI_w;
+	input	[63:0]	input_buffer_DO_w;
+	output	logic	[13:0]	input_buffer_A_w;
+	output	logic	[1:0]	input_buffer_CEN_w;
+	output	logic	[1:0]	input_buffer_OEN_w;
+	output	logic	[1:0]	input_buffer_WEN_w;
 
     //output_SRAM
-	logic	[31:0]	output_SRAM_DI		[0:31];
-	logic	[31:0]	output_SRAM_DO		[0:31];
+	logic	[15:0]	output_SRAM_DI		[0:31];
+	logic	[15:0]	output_SRAM_DO		[0:31];
 	logic	[11:0]	output_SRAM_AA		[0:31];	//output_SRAM_DI
 	logic	[11:0]	output_SRAM_AB		[0:31];	//output_SRAM_DO
 	logic	output_SRAM_CEN;
@@ -65,16 +180,16 @@ module top(
 	//output_SRAM read controller/DMA
 	logic	[11:0]	output_SRAM_AB_DMA			[0:31];
 	logic	[11:0]	output_SRAM_AB_controller	[0:31];
-	logic	[31:0]	output_SRAM_DO_DMA			[0:31];
-	logic	[31:0]	output_SRAM_DO_controller	[0:31];
+	logic	[15:0]	output_SRAM_DO_DMA			[0:31];
+	logic	[15:0]	output_SRAM_DO_controller	[0:31];
 	logic	output_SRAM_OEN_DMA;
 	logic	output_SRAM_OEN_controller;
 	logic	output_sram_read_select;
 	logic	output_SRAM_CEN_DMA;
 	logic	output_SRAM_CEN_controller;
 	//input_SRAM
-	logic	[127:0]	input_SRAM_DI		[0:63];
-	logic	[127:0]	input_SRAM_DO		[0:63];
+	logic	[31:0]	input_SRAM_DI		[0:63];
+	logic	[31:0]	input_SRAM_DO		[0:63];
 	logic	[6:0]	input_SRAM_A		[0:63];
 	logic	input_SRAM_CEN	[0:63];
 	logic	input_SRAM_OEN	[0:63];
@@ -84,10 +199,11 @@ module top(
 	logic	[6:0]	input_SRAM_A_write	[0:63];
 	logic	input_SRAM_CEN_read		[0:63];
 	logic	input_SRAM_CEN_write	[0:63];
+	logic	input_SRAM_WEN_write	[0:63];
 	logic	input_SRAM_rw_select	[0:63];		//0-> read 1->write
 	//weight_SRAM
-	logic	[31:0]	weight_SRAM_DI		[0:287];
-	logic	[31:0]	weight_SRAM_DO		[0:287];
+	//logic	[31:0]	weight_SRAM_DI		[0:287];
+	logic	[7:0]	weight_SRAM_DO		[0:287];
 	logic	[6:0]	weight_SRAM_A		[0:287];
 	logic	weight_SRAM_CEN		[0:287];
 	logic	weight_SRAM_OEN		[0:287];
@@ -97,6 +213,7 @@ module top(
 	logic	[6:0]	weight_SRAM_A_write		[0:287];
 	logic	weight_SRAM_CEN_read	[0:287];
 	logic	weight_SRAM_CEN_write	[0:287];
+	logic	weight_SRAM_WEN_write	[0:287];
 	logic	weight_SRAM_rw_select;		//0-> read 1->write
     //controller
 	logic	controller_run;
@@ -107,8 +224,8 @@ module top(
 	logic	[5:0]	col_end;
     logic	tile_done;
 	//input buffer
-	logic	[127:0]	input_buffer_DI		[0:1];
-	logic	[127:0]	input_buffer_DO		[0:1];
+	//logic	[127:0]	input_buffer_DI		[0:1];
+	logic	[31:0]	input_buffer_DO		[0:1];
 	logic	[6:0]	input_buffer_A		[0:1];
 	logic	input_buffer_CEN	[0:1];
 	logic	input_buffer_OEN	[0:1];
@@ -118,6 +235,7 @@ module top(
 	logic	[6:0]	input_buffer_A_write	[0:1];
 	logic	input_buffer_CEN_read	[0:1];
 	logic	input_buffer_CEN_write	[0:1];
+	logic	input_buffer_WEN_write	[0:1];
 	logic	input_buffer_rw_select	[0:1];		//0-> read 1->write
 	//weight buffer
 	logic	[287:0]	weight_buffer_DI		[0:1];
@@ -141,15 +259,15 @@ module top(
 	// logic	[10:0]	A;		//Address
 	// logic	[31:0]	D;		//Data Input
 	//DMA
-	logic	[31:0]  DRAM_ADDR_start,DRAM_ADDR_end;
-	logic	[6:0]	BUF_ADDR_start_write;
-	logic	[6:0]	BUF_ADDR_end_write;
-	logic	[15:0]	WEIGHT_SRAM_ADDR_start;
-	logic	[15:0]	WEIGHT_SRAM_ADDR_end;
-	logic	[17:0]	Output_SRAM_ADDR_start,Output_SRAM_ADDR_end;
-	logic	DMA_start,DMA_done;
-	logic	SRAM_type,DMA_buf_select;
-	logic	DMA_type;		//0->read 1->write
+	// logic	[31:0]  DRAM_ADDR_start,DRAM_ADDR_end;
+	// logic	[6:0]	BUF_ADDR_start_write;
+	// logic	[6:0]	BUF_ADDR_end_write;
+	// logic	[15:0]	WEIGHT_SRAM_ADDR_start;
+	// logic	[15:0]	WEIGHT_SRAM_ADDR_end;
+	// logic	[17:0]	Output_SRAM_ADDR_start,Output_SRAM_ADDR_end;
+	// logic	DMA_start,DMA_done;
+	// logic	SRAM_type,DMA_buf_select;
+	// logic	DMA_type;		//0->read 1->write
 	//signal for buffer to sram
 	logic	input_SRAM_ready	[0:63];
 	logic	[2:0]	controller_cur_state;
@@ -164,8 +282,65 @@ module top(
 	//pooling_enable
 	logic	pooling_enable;
 	//filter_parting_size1_times
-	logic	[3:0]	filter_parting_map_times;
-	logic	[3:0]	filter_parting_map_count;
+	// logic	[3:0]	filter_parting_map_times;
+	// logic	[3:0]	filter_parting_map_count;
+
+	//wire -> logic
+	always_comb
+	begin
+		integer i;
+		for(i=0;i<64;i++)
+		begin
+			input_SRAM_DO[i]	=	input_SRAM_DO_w[(i*32)+:32];
+			input_SRAM_DI_w[(i*32)+:32]	=	input_SRAM_DI[i];
+			input_SRAM_A_w[(i*7)+:7]	=	input_SRAM_A[i];
+			input_SRAM_CEN_w[i]	=	input_SRAM_CEN[i];
+			input_SRAM_OEN_w[i]	=	input_SRAM_OEN[i];
+			input_SRAM_WEN_w[i]	=	input_SRAM_WEN[i];
+		end
+		for(i=0;i<32;i++)
+		begin
+			output_SRAM_DO[i]	=	output_SRAM_DO_w[(i*16)+:16];
+			output_SRAM_DI_w[(i*16)+:16]	=	output_SRAM_DI[i];
+			output_SRAM_AA_w[(i*12)+:12]	=	output_SRAM_AA[i];
+			output_SRAM_AB_w[(i*12)+:12]	=	output_SRAM_AB[i];
+			output_SRAM_WEN_w[i]	=	output_SRAM_WEN[i];
+			//DMA
+			output_SRAM_DO_DMA_w[(i*16)+:16]	=	output_SRAM_DO_DMA[i];
+			output_SRAM_AB_DMA[i]	=	output_SRAM_AB_DMA_w[(i*12)+:12];
+		end
+		output_SRAM_CEN_w	=	output_SRAM_CEN;
+		output_SRAM_OEN_w	=	output_SRAM_OEN;
+		//DMA
+		output_SRAM_CEN_DMA	=	output_SRAM_CEN_DMA_w;
+		output_SRAM_OEN_DMA	=	output_SRAM_OEN_DMA_w;
+		for(i=0;i<288;i++)
+		begin
+			weight_SRAM_DO[i]	=	weight_SRAM_DO_w[(i*8)+:8];
+			//weight_SRAM_DI_w[(i*32)+:32]	=	weight_SRAM_DI[i];
+			weight_SRAM_A_w[(i*7)+:7]	=	weight_SRAM_A[i];
+			weight_SRAM_CEN_w[i]	=	weight_SRAM_CEN[i];
+			weight_SRAM_OEN_w[i]	=	weight_SRAM_OEN[i];
+			weight_SRAM_WEN_w[i]	=	weight_SRAM_WEN[i];
+			//DMA data
+			weight_SRAM_A_write[i]	=	weight_SRAM_A_write_w[(i*7)+:7];
+			weight_SRAM_CEN_write[i]	=	weight_SRAM_CEN_write_w[i];
+			weight_SRAM_WEN_write[i]	=	weight_SRAM_WEN_write_w[i];
+		end
+		for(i=0;i<2;i++)
+		begin
+			input_buffer_DO[i]	=	input_buffer_DO_w[(i*32)+:32];
+			//input_buffer_DI_w[(i*128)+:128]	=	input_buffer_DI[i];
+			input_buffer_A_w[(i*7)+:7]	=	input_buffer_A[i];
+			input_buffer_CEN_w[i]	=	input_buffer_CEN[i];
+			input_buffer_OEN_w[i]	=	input_buffer_OEN[i];
+			input_buffer_WEN_w[i]	=	input_buffer_WEN[i];
+			//DMA data
+			input_buffer_A_write[i]	=	input_buffer_A_write_w[(i*7)+:7];
+			input_buffer_WEN_write[i]	=	input_buffer_WEN_write_w[i];
+			input_buffer_CEN_write[i]	=	input_buffer_CEN_write_w[i];
+		end
+	end
 	
 
     //assign  DMA_start	=   1'b1;
@@ -192,7 +367,9 @@ module top(
 	    .input_SRAM_A_write(input_SRAM_A_write),
 		.input_SRAM_CEN(input_SRAM_CEN),
 	    .input_SRAM_CEN_read(input_SRAM_CEN_read),
-	    .input_SRAM_CEN_write(input_SRAM_CEN_write)
+	    .input_SRAM_CEN_write(input_SRAM_CEN_write),
+		.input_SRAM_WEN(input_SRAM_WEN),
+		.input_SRAM_WEN_write(input_SRAM_WEN_write)
 	);
 
 	mux_weight_sram mux_weight_sram_1(
@@ -202,7 +379,9 @@ module top(
 	    .weight_SRAM_A_write(weight_SRAM_A_write),
 		.weight_SRAM_CEN(weight_SRAM_CEN),
 	    .weight_SRAM_CEN_read(weight_SRAM_CEN_read),
-	    .weight_SRAM_CEN_write(weight_SRAM_CEN_write)
+	    .weight_SRAM_CEN_write(weight_SRAM_CEN_write),
+		.weight_SRAM_WEN(weight_SRAM_WEN),
+		.weight_SRAM_WEN_write(weight_SRAM_WEN_write)
 	);
 
 	mux_buffer mux_buffer_1(
@@ -212,7 +391,9 @@ module top(
 	    .input_buffer_A_write(input_buffer_A_write),
 		.input_buffer_CEN(input_buffer_CEN),
 	    .input_buffer_CEN_read(input_buffer_CEN_read),
-	    .input_buffer_CEN_write(input_buffer_CEN_write)
+	    .input_buffer_CEN_write(input_buffer_CEN_write),
+		.input_buffer_WEN(input_buffer_WEN),
+		.input_buffer_WEN_write(input_buffer_WEN_write)
 	);
 
 	mux_output_sram_read mux_output_sram_read_1(
@@ -286,51 +467,51 @@ module top(
 	// assign	DMA_start	=	(DMA_done)?1'b0:1'b1;
 	// assign	SRAM_type	=	1'b1;
 	//DMA
-	DMA	DMA_1(
-		.clk(clk),
-		.rst(rst),
-		.DRAM_ADDR_start(DRAM_ADDR_start),
-		.DRAM_ADDR_end(DRAM_ADDR_end),
-		.BUF_ADDR_start(BUF_ADDR_start_write),
-		.BUF_ADDR_end(BUF_ADDR_end_write),
-		.WEIGHT_SRAM_ADDR_start(WEIGHT_SRAM_ADDR_start),
-		.WEIGHT_SRAM_ADDR_end(WEIGHT_SRAM_ADDR_end),
-		.Output_SRAM_ADDR_start(Output_SRAM_ADDR_start),
-		.Output_SRAM_ADDR_end(Output_SRAM_ADDR_end),
-		.DMA_start(DMA_start),
-		.DMA_done(DMA_done),
-		.SRAM_type(SRAM_type),
-		.buf_select(DMA_buf_select),
-		.DMA_type(DMA_type),
-		//DRAM
-		.DRAM_Q(Q),
-		.DRAM_D(D),
-		.DRAM_CSn(CSn),
-		.DRAM_RASn(RASn),
-		.DRAM_CASn(CASn),
-		.DRAM_WEn(WEn),
-		.DRAM_A(A),
-		//input buffer
-		.input_buffer_CEN(input_buffer_CEN_write),
-		.input_buffer_WEN(input_buffer_WEN),
-		.input_buffer_A(input_buffer_A_write),
-		.input_buffer_DI(input_buffer_DI),
-		//weight_SRAM access
-	    .weight_SRAM_CEN_write(weight_SRAM_CEN_write),
-	    .weight_SRAM_WEN(weight_SRAM_WEN),
-	    .weight_SRAM_A_write(weight_SRAM_A_write),
-	    .weight_SRAM_DI(weight_SRAM_DI),
-		//output_sram access
-		.output_SRAM_AB_DMA(output_SRAM_AB_DMA),
-		.output_SRAM_DO_DMA(output_SRAM_DO_DMA),
-		.output_SRAM_OEN_DMA(output_SRAM_OEN_DMA),
-		.output_SRAM_CEN_DMA(output_SRAM_CEN_DMA),
-		//conv info
-		.kernel_size(kernel_size),
-		//filter_parting_size1_times
-		.filter_parting_map_times(filter_parting_map_times),
-		.filter_parting_map_count(filter_parting_map_count)
-	);
+	// DMA	DMA_1(
+	// 	.clk(clk),
+	// 	.rst(rst),
+	// 	.DRAM_ADDR_start(DRAM_ADDR_start),
+	// 	.DRAM_ADDR_end(DRAM_ADDR_end),
+	// 	.BUF_ADDR_start(BUF_ADDR_start_write),
+	// 	.BUF_ADDR_end(BUF_ADDR_end_write),
+	// 	.WEIGHT_SRAM_ADDR_start(WEIGHT_SRAM_ADDR_start),
+	// 	.WEIGHT_SRAM_ADDR_end(WEIGHT_SRAM_ADDR_end),
+	// 	.Output_SRAM_ADDR_start(Output_SRAM_ADDR_start),
+	// 	.Output_SRAM_ADDR_end(Output_SRAM_ADDR_end),
+	// 	.DMA_start(DMA_start),
+	// 	.DMA_done(DMA_done),
+	// 	.SRAM_type(SRAM_type),
+	// 	.buf_select(DMA_buf_select),
+	// 	.DMA_type(DMA_type),
+	// 	//DRAM
+	// 	.DRAM_Q(Q),
+	// 	.DRAM_D(D),
+	// 	.DRAM_CSn(CSn),
+	// 	.DRAM_RASn(RASn),
+	// 	.DRAM_CASn(CASn),
+	// 	.DRAM_WEn(WEn),
+	// 	.DRAM_A(A),
+	// 	//input buffer
+	// 	.input_buffer_CEN(input_buffer_CEN_write),
+	// 	.input_buffer_WEN(input_buffer_WEN_write),
+	// 	.input_buffer_A(input_buffer_A_write),
+	// 	.input_buffer_DI(input_buffer_DI),
+	// 	//weight_SRAM access
+	//     .weight_SRAM_CEN_write(weight_SRAM_CEN_write),
+	//     .weight_SRAM_WEN(weight_SRAM_WEN_write),
+	//     .weight_SRAM_A_write(weight_SRAM_A_write),
+	//     .weight_SRAM_DI(weight_SRAM_DI),
+	// 	//output_sram access
+	// 	.output_SRAM_AB_DMA(output_SRAM_AB_DMA),
+	// 	.output_SRAM_DO_DMA(output_SRAM_DO_DMA),
+	// 	.output_SRAM_OEN_DMA(output_SRAM_OEN_DMA),
+	// 	.output_SRAM_CEN_DMA(output_SRAM_CEN_DMA),
+	// 	//conv info
+	// 	.kernel_size(kernel_size),
+	// 	//filter_parting_size1_times
+	// 	.filter_parting_map_times(filter_parting_map_times),
+	// 	.filter_parting_map_count(filter_parting_map_count)
+	// );
 
 	buffer2sram_input buffer2sram_input_1(
 		.clk(clk),
@@ -349,7 +530,7 @@ module top(
 		.input_SRAM_DI(input_SRAM_DI),
 		.input_SRAM_A_write(input_SRAM_A_write),
 		.input_SRAM_CEN_write(input_SRAM_CEN_write),
-		.input_SRAM_WEN(input_SRAM_WEN)  
+		.input_SRAM_WEN(input_SRAM_WEN_write)  
 	);
 
 	transfer_controller transfer_controller_1(
@@ -376,7 +557,7 @@ module top(
 	    .DMA_done(DMA_done),
 	    .SRAM_type(SRAM_type),
 		.DMA_type(DMA_type),
-	    .DMA_buf_select(DMA_buf_select),
+	    .DMA_buf_select(buf_select),
 		.tile_done(tile_done),
 		//buffer2sram_input
 		.input_BUF_ADDR_start(BUF_ADDR_start_read),
@@ -407,98 +588,98 @@ module top(
 		.filter_parting_map_count(filter_parting_map_count)
 	);
 
-    //SRAM
-    genvar i;
-	//ping-pong SRAM
-	//input_SRAM * 64
-	generate
-		for(i=0;i<64;i=i+1)
-		begin: u_input_SRAM
-			input_SRAM input_SRAM_i(
-				.CLK(clk),
-				.CEN(input_SRAM_CEN[i]),
-				.WEN(input_SRAM_WEN[i]),
-				.OEN(input_SRAM_OEN[i]),
-				.A(input_SRAM_A[i]),
-				.D(input_SRAM_DI[i]),
-				.Q(input_SRAM_DO[i])
-			);
-		end
-	endgenerate
+    // //SRAM
+    // genvar i;
+	// //ping-pong SRAM
+	// //input_SRAM * 64
+	// generate
+	// 	for(i=0;i<64;i=i+1)
+	// 	begin: u_input_SRAM
+	// 		input_SRAM input_SRAM_i(
+	// 			.CLK(clk),
+	// 			.CEN(input_SRAM_CEN[i]),
+	// 			.WEN(input_SRAM_WEN[i]),
+	// 			.OEN(input_SRAM_OEN[i]),
+	// 			.A(input_SRAM_A[i]),
+	// 			.D(input_SRAM_DI[i]),
+	// 			.Q(input_SRAM_DO[i])
+	// 		);
+	// 	end
+	// endgenerate
 
-    //output_SRAM * 32
-	generate
-		for(i=0;i<32;i=i+1)
-		begin: u_output_SRAM
-			output_SRAM output_SRAM_i(
-				// A
-				.CLKA(clk),
-				.CENA(output_SRAM_CEN),
-				.WENA(output_SRAM_WEN[i]),
-				.OENA(),
-				.AA(output_SRAM_AA[i]),
-				.DA(output_SRAM_DI[i]),
-				.QA(),
-				// B
-				.CLKB(clk),
-				.CENB(output_SRAM_CEN),
-				.WENB(),
-				.OENB(output_SRAM_OEN),
-				.AB(output_SRAM_AB[i]),
-				.DB(),
-				.QB(output_SRAM_DO[i])
-			);
-		end
-	endgenerate
+    // //output_SRAM * 32
+	// generate
+	// 	for(i=0;i<32;i=i+1)
+	// 	begin: u_output_SRAM
+	// 		output_SRAM output_SRAM_i(
+	// 			// A
+	// 			.CLKA(clk),
+	// 			.CENA(output_SRAM_CEN),
+	// 			.WENA(output_SRAM_WEN[i]),
+	// 			.OENA(),
+	// 			.AA(output_SRAM_AA[i]),
+	// 			.DA(output_SRAM_DI[i]),
+	// 			.QA(),
+	// 			// B
+	// 			.CLKB(clk),
+	// 			.CENB(output_SRAM_CEN),
+	// 			.WENB(),
+	// 			.OENB(output_SRAM_OEN),
+	// 			.AB(output_SRAM_AB[i]),
+	// 			.DB(),
+	// 			.QB(output_SRAM_DO[i])
+	// 		);
+	// 	end
+	// endgenerate
 
-	//weight_SRAM * 288
-	generate
-		for(i=0;i<288;i=i+1)
-		begin: u_weight_SRAM
-			weight_SRAM weight_SRAM_i(
-				.CLK(clk),
-				.CEN(weight_SRAM_CEN[i]),
-				.WEN(weight_SRAM_WEN[i]),
-				.OEN(weight_SRAM_OEN[i]),
-				.A(weight_SRAM_A[i]),
-				.D(weight_SRAM_DI[i]),
-				.Q(weight_SRAM_DO[i])
-			);
-		end
-	endgenerate
+	// //weight_SRAM * 288
+	// generate
+	// 	for(i=0;i<288;i=i+1)
+	// 	begin: u_weight_SRAM
+	// 		weight_SRAM weight_SRAM_i(
+	// 			.CLK(clk),
+	// 			.CEN(weight_SRAM_CEN[i]),
+	// 			.WEN(weight_SRAM_WEN[i]),
+	// 			.OEN(weight_SRAM_OEN[i]),
+	// 			.A(weight_SRAM_A[i]),
+	// 			.D(weight_SRAM_DI[i]),
+	// 			.Q(weight_SRAM_DO[i])
+	// 		);
+	// 	end
+	// endgenerate
 
-	//buffer
-	//input buffer
-	generate
-		for(i=0;i<2;i=i+1)
-		begin: u_input_buf
-			input_SRAM input_buf_i(
-				.CLK(clk),
-				.CEN(input_buffer_CEN[i]),
-				.WEN(input_buffer_WEN[i]),
-				.OEN(input_buffer_OEN[i]),
-				.A(input_buffer_A[i]),
-				.D(input_buffer_DI[i]),
-				.Q(input_buffer_DO[i])
-			);
-		end
-	endgenerate
+	// //buffer
+	// //input buffer
+	// generate
+	// 	for(i=0;i<2;i=i+1)
+	// 	begin: u_input_buf
+	// 		input_SRAM input_buf_i(
+	// 			.CLK(clk),
+	// 			.CEN(input_buffer_CEN[i]),
+	// 			.WEN(input_buffer_WEN[i]),
+	// 			.OEN(input_buffer_OEN[i]),
+	// 			.A(input_buffer_A[i]),
+	// 			.D(input_buffer_DI[i]),
+	// 			.Q(input_buffer_DO[i])
+	// 		);
+	// 	end
+	// endgenerate
 
-	//weight buffer
-	generate
-		for(i=0;i<2;i=i+1)
-		begin: u_weight_buf
-			weight_SRAM weight_buf_i(
-				.CLK(clk),
-				.CEN(weight_buffer_CEN[i]),
-				.WEN(weight_buffer_WEN[i]),
-				.OEN(weight_buffer_OEN[i]),
-				.A(weight_buffer_A[i]),
-				.D(weight_buffer_DI[i]),
-				.Q(weight_buffer_DO[i])
-			);
-		end
-	endgenerate
+	// //weight buffer
+	// generate
+	// 	for(i=0;i<2;i=i+1)
+	// 	begin: u_weight_buf
+	// 		weight_SRAM weight_buf_i(
+	// 			.CLK(clk),
+	// 			.CEN(weight_buffer_CEN[i]),
+	// 			.WEN(weight_buffer_WEN[i]),
+	// 			.OEN(weight_buffer_OEN[i]),
+	// 			.A(weight_buffer_A[i]),
+	// 			.D(weight_buffer_DI[i]),
+	// 			.Q(weight_buffer_DO[i])
+	// 		);
+	// 	end
+	// endgenerate
 
 
 endmodule

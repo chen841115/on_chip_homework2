@@ -25,12 +25,12 @@ module  buffer2sram_input(
 	input	buffer2sram_start;
 	output  logic   buffer2sram_done;
 
-	input   [127:0]	input_buffer_DO	[0:1];
+	input   [31:0]	input_buffer_DO	[0:1];
 	output  logic   [6:0]   input_buffer_A_read [0:1];
 	output  logic   input_buffer_CEN_read   [0:1];
 	output  logic   input_buffer_OEN    [0:1];
 
-	output  logic   [127:0]	input_SRAM_DI	    [0:63];
+	output  logic   [31:0]	input_SRAM_DI	    [0:63];
 	output  logic   [6:0]   input_SRAM_A_write  [0:63];
 	output  logic   input_SRAM_CEN_write	[0:63];
 	output  logic	input_SRAM_WEN	[0:63];

@@ -23,13 +23,13 @@ module DMA(
     DRAM_WEn,
     DRAM_A,
     //input_buffer access
-    input_buffer_CEN,
-    input_buffer_WEN,
-    input_buffer_A,
+    input_buffer_CEN_write,
+    input_buffer_WEN_write,
+    input_buffer_A_write,
     input_buffer_DI,
 	//weight_SRAM access
     weight_SRAM_CEN_write,
-    weight_SRAM_WEN,
+    weight_SRAM_WEN_write,
     weight_SRAM_A_write,
     weight_SRAM_DI,
 	//output_sram access
@@ -69,19 +69,19 @@ module DMA(
     output  logic   [12:0]  DRAM_A;
 
     //SRAM access
-    output  logic	[127:0]	input_buffer_DI		[0:1];
-	output  logic	[6:0]	input_buffer_A		[0:1];
-	output  logic	input_buffer_CEN	[0:1];
-	output  logic	input_buffer_WEN	[0:1]; 
+    output  logic	[31:0]	input_buffer_DI		[0:1];
+	output  logic	[6:0]	input_buffer_A_write		[0:1];
+	output  logic	input_buffer_CEN_write	[0:1];
+	output  logic	input_buffer_WEN_write	[0:1]; 
 
-	output  logic	[31:0]	weight_SRAM_DI		[0:287];
+	output  logic	[7:0]	weight_SRAM_DI		[0:287];
 	output  logic	[6:0]	weight_SRAM_A_write	[0:287];
 	output  logic	weight_SRAM_CEN_write		[0:287];
-	output  logic	weight_SRAM_WEN				[0:287]; 
+	output  logic	weight_SRAM_WEN_write				[0:287]; 
 
 	//output_sram access
 	output	logic	[11:0]	output_SRAM_AB_DMA	[0:31];
-	input	[31:0]	output_SRAM_DO_DMA	[0:31];
+	input	[15:0]	output_SRAM_DO_DMA	[0:31];
 	output	logic	output_SRAM_OEN_DMA;
 	output	logic	output_SRAM_CEN_DMA;
 
@@ -101,7 +101,7 @@ module DMA(
 	logic	[31:0]	next_DRAM_addr;
 	logic	[6:0]	input_buf_A_predict;
 
-    logic   [31:0]  buffer	[0:48];
+    logic   [7:0]  buffer	[0:48];
 	logic	row_change;
 	logic	read_end,read_end_predict,at_least_one;
 	//DRAM -> weight 
@@ -115,8 +115,8 @@ module DMA(
 	begin
 		if(rst)
 		begin
-			input_buffer_DI[0]	<=	128'b1;
-			input_buffer_DI[1]	<=	128'b0;
+			input_buffer_DI[0]	<=	32'b0;
+			input_buffer_DI[1]	<=	32'b0;
 		end
 		else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
 		begin
@@ -133,38 +133,38 @@ module DMA(
 		end
 		else
 		begin
-			input_buffer_DI[0]	<=	128'b0;
-			input_buffer_DI[1]	<=	128'b0;
+			input_buffer_DI[0]	<=	32'b0;
+			input_buffer_DI[1]	<=	32'b0;
 		end
 	end
-	//input_buffer_CEN
+	//input_buffer_CEN_write
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
-			input_buffer_CEN[0]	<=	1'b1;
-			input_buffer_CEN[1]	<=	1'b1;
+			input_buffer_CEN_write[0]	<=	1'b1;
+			input_buffer_CEN_write[1]	<=	1'b1;
 		end
 		else if(SRAM_type == 'b0 && DMA_type == 1'b0)
 		begin
 			if(buf_select == 1'b0)
-				input_buffer_CEN[0]	<=	1'b0;
+				input_buffer_CEN_write[0]	<=	1'b0;
 			else
-				input_buffer_CEN[1]	<=	1'b0;
+				input_buffer_CEN_write[1]	<=	1'b0;
 		end
 		else
 		begin
-			input_buffer_CEN[0]	<=	1'b1;
-			input_buffer_CEN[1]	<=	1'b1;
+			input_buffer_CEN_write[0]	<=	1'b1;
+			input_buffer_CEN_write[1]	<=	1'b1;
 		end
 	end
-	//input_buffer_WEN
+	//input_buffer_WEN_write
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
-			input_buffer_WEN[0]	<=	1'b1;
-			input_buffer_WEN[1]	<=	1'b1;
+			input_buffer_WEN_write[0]	<=	1'b1;
+			input_buffer_WEN_write[1]	<=	1'b1;
 		end
 		else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
 		begin
@@ -173,35 +173,35 @@ module DMA(
 				if(DRAM_data_count	==	4'd4)
 				begin
 					if(buf_select == 0)
-						input_buffer_WEN[0]	<=	1'b0;
+						input_buffer_WEN_write[0]	<=	1'b0;
 					else
-						input_buffer_WEN[1]	<=	1'b0;
+						input_buffer_WEN_write[1]	<=	1'b0;
 				end
 				else
 				begin
-					input_buffer_WEN[0]	<=	1'b1;
-					input_buffer_WEN[1]	<=	1'b1;
+					input_buffer_WEN_write[0]	<=	1'b1;
+					input_buffer_WEN_write[1]	<=	1'b1;
 				end
 			end
 			else
 			begin
-				input_buffer_WEN[0]	<=	1'b1;
-				input_buffer_WEN[1]	<=	1'b1;
+				input_buffer_WEN_write[0]	<=	1'b1;
+				input_buffer_WEN_write[1]	<=	1'b1;
 			end
 		end
 		else
 		begin
-			input_buffer_WEN[0]	<=	1'b1;
-			input_buffer_WEN[1]	<=	1'b1;
+			input_buffer_WEN_write[0]	<=	1'b1;
+			input_buffer_WEN_write[1]	<=	1'b1;
 		end
 	end
-	//input_buffer_A
+	//input_buffer_A_write
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
 		begin
-			input_buffer_A[0]	<=	7'b0;
-			input_buffer_A[1]	<=	7'b0;
+			input_buffer_A_write[0]	<=	7'b0;
+			input_buffer_A_write[1]	<=	7'b0;
 		end
 		else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
 		begin
@@ -210,20 +210,20 @@ module DMA(
 				if(DRAM_data_count	==	4'd4)
 				begin
 					if(buf_select == 0)
-						input_buffer_A[0]	<=	cur_addr[6:0];
+						input_buffer_A_write[0]	<=	cur_addr[6:0];
 					else
-						input_buffer_A[1]	<=	cur_addr[6:0];
+						input_buffer_A_write[1]	<=	cur_addr[6:0];
 				end
 			end
 			else
 			begin
-				input_buffer_A[buf_select]	<=	7'b0;
+				input_buffer_A_write[buf_select]	<=	7'b0;
 			end
 		end
 		else
 		begin
-			input_buffer_A[0]	<=	7'b0;
-			input_buffer_A[1]	<=	7'b0;
+			input_buffer_A_write[0]	<=	7'b0;
+			input_buffer_A_write[1]	<=	7'b0;
 		end
 	end
 
@@ -236,7 +236,7 @@ module DMA(
 			integer	i;
 			for(i=0;i<32;i++)
 			begin
-				weight_SRAM_DI[i]	<=	'b0;
+				weight_SRAM_DI[i]	<=	8'b0;
 			end
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
@@ -295,8 +295,8 @@ module DMA(
 						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	buffer[14];
 						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	buffer[19];
 						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	buffer[24];
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	'd0;
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	8'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	8'd0;
 					end
 						//weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[18],buffer[23],buffer[4],buffer[9],buffer[14],buffer[19],buffer[24],32'b0,32'b0};
 				end
@@ -368,11 +368,11 @@ module DMA(
 						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd1]	<=	buffer[34];
 						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd2]	<=	buffer[41];
 						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd3]	<=	buffer[48];
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	'd0;
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	'd0;
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	'd0;
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	'd0;
-						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd4]	<=	8'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd5]	<=	8'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd6]	<=	8'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd7]	<=	8'd0;
+						weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]*'d9 + 'd8]	<=	8'd0;
 					end
 						//weight_SRAM_DI[WEIGHT_SRAM_ADDR_start[11:7]]	<=	{buffer[18],buffer[23],buffer[4],buffer[9],buffer[14],buffer[19],buffer[24],32'b0,32'b0};
 				end
@@ -418,7 +418,7 @@ module DMA(
 			integer	i;
 			for(i=0;i<288;i++)
 			begin
-				weight_SRAM_DI[i]	<=	'b0;
+				weight_SRAM_DI[i]	<=	8'b0;
 			end
 		end
 	end
@@ -430,7 +430,7 @@ module DMA(
 			integer	i;
 			for(i=0;i<288;i++)
 			begin
-				weight_SRAM_CEN_write[i]	<=	'b1;
+				weight_SRAM_CEN_write[i]	<=	1'b1;
 			end
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
@@ -438,11 +438,11 @@ module DMA(
 			integer	i;
 			for(i=0;i<288;i++)
 			begin
-				weight_SRAM_CEN_write[i]	<=	'b0;
+				weight_SRAM_CEN_write[i]	<=	1'b0;
 			end
 		end
 	end
-	//weight_SRAM_WEN
+	//weight_SRAM_WEN_write
 	always_ff @(posedge clk, posedge rst)
 	begin
 		if(rst)
@@ -450,7 +450,7 @@ module DMA(
 			integer	i;
 			for(i=0;i<288;i++)
 			begin
-				weight_SRAM_WEN[i]	<=	'b1;
+				weight_SRAM_WEN_write[i]	<=	1'b1;
 			end
 		end
 		else if(SRAM_type == 1'b1 && DMA_type == 1'b0)
@@ -466,28 +466,28 @@ module DMA(
 						begin
 							if(i == WEIGHT_SRAM_ADDR_start[11:7])
 							begin
-								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd0]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd1]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd2]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd3]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd4]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd5]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd6]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd7]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd8]	<=	1'b0;
 							end
-								//weight_SRAM_WEN[i]	<=	'b0;
+								//weight_SRAM_WEN_write[i]	<=	'b0;
 							else
 							begin
-								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd0]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd1]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd2]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd3]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd4]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd5]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd6]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd7]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd8]	<=	1'b1;
 							end
 						end
 					end
@@ -495,7 +495,7 @@ module DMA(
 					begin
 						integer	i;
 						for(i=0;i<288;i++)
-							weight_SRAM_WEN[i]	<=	'b1;
+							weight_SRAM_WEN_write[i]	<=	1'b1;
 					end
 				end
 				else if(kernel_size == 'd5)
@@ -508,28 +508,28 @@ module DMA(
 						begin
 							if(i == WEIGHT_SRAM_ADDR_start[11:7])
 							begin
-								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd0]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd1]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd2]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd3]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd4]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd5]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd6]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd7]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd8]	<=	1'b0;
 							end
-								//weight_SRAM_WEN[i]	<=	'b0;
+								//weight_SRAM_WEN_write[i]	<=	'b0;
 							else
 							begin
-								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd0]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd1]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd2]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd3]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd4]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd5]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd6]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd7]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd8]	<=	'b1;
 							end
 						end
 					end
@@ -537,7 +537,7 @@ module DMA(
 					begin
 						integer	i;
 						for(i=0;i<288;i++)
-							weight_SRAM_WEN[i]	<=	'b1;
+							weight_SRAM_WEN_write[i]	<=	'b1;
 					end
 				end
 				else if(kernel_size == 'd7)
@@ -551,28 +551,28 @@ module DMA(
 						begin
 							if(i == WEIGHT_SRAM_ADDR_start[11:7])
 							begin
-								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b0;
-								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd0]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd1]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd2]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd3]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd4]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd5]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd6]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd7]	<=	1'b0;
+								weight_SRAM_WEN_write[i*'d9 + 'd8]	<=	1'b0;
 							end
-								//weight_SRAM_WEN[i]	<=	'b0;
+								//weight_SRAM_WEN_write[i]	<=	'b0;
 							else
 							begin
-								weight_SRAM_WEN[i*'d9 + 'd0]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd1]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd2]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd3]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd4]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd5]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd6]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd7]	<=	'b1;
-								weight_SRAM_WEN[i*'d9 + 'd8]	<=	'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd0]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd1]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd2]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd3]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd4]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd5]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd6]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd7]	<=	1'b1;
+								weight_SRAM_WEN_write[i*'d9 + 'd8]	<=	1'b1;
 							end
 						end
 					end
@@ -580,7 +580,7 @@ module DMA(
 					begin
 						integer	i;
 						for(i=0;i<288;i++)
-							weight_SRAM_WEN[i]	<=	'b1;
+							weight_SRAM_WEN_write[i]	<=	'b1;
 					end
 				end
 				else if(kernel_size == 'd1)
@@ -594,11 +594,11 @@ module DMA(
 							begin
 								if(i == WEIGHT_SRAM_ADDR_start[15:7] && read_end_predict == 'b0)
 								begin
-									weight_SRAM_WEN[i]	<=	'b0;
+									weight_SRAM_WEN_write[i]	<=	1'b0;
 								end
 								else
 								begin
-									weight_SRAM_WEN[i]	<=	'b1;
+									weight_SRAM_WEN_write[i]	<=	1'b1;
 									
 								end
 							end
@@ -607,7 +607,7 @@ module DMA(
 						begin
 							integer	i;
 							for(i=0;i<288;i++)
-								weight_SRAM_WEN[i]	<=	'b1;
+								weight_SRAM_WEN_write[i]	<=	1'b1;
 						end
 					end
 					else if(filter_parting_map_times == 'd4)
@@ -620,11 +620,11 @@ module DMA(
 								if(read_end_predict == 'b0 && (i == WEIGHT_SRAM_ADDR_start[15:7]||i == WEIGHT_SRAM_ADDR_start[15:7]+'d1||
 																i == WEIGHT_SRAM_ADDR_start[15:7]+'d2||i == WEIGHT_SRAM_ADDR_start[15:7]+'d3))
 								begin
-									weight_SRAM_WEN[i]	<=	'b0;
+									weight_SRAM_WEN_write[i]	<=	1'b0;
 								end
 								else
 								begin
-									weight_SRAM_WEN[i]	<=	'b1;
+									weight_SRAM_WEN_write[i]	<=	1'b1;
 									
 								end
 							end
@@ -633,7 +633,7 @@ module DMA(
 						begin
 							integer	i;
 							for(i=0;i<288;i++)
-								weight_SRAM_WEN[i]	<=	'b1;
+								weight_SRAM_WEN_write[i]	<=	1'b1;
 						end
 					end
 					else if(filter_parting_map_times == 'd9)
@@ -649,11 +649,11 @@ module DMA(
 																i == WEIGHT_SRAM_ADDR_start[15:7]+'d6||i == WEIGHT_SRAM_ADDR_start[15:7]+'d7||
 																i == WEIGHT_SRAM_ADDR_start[15:7]+'d8))
 								begin
-									weight_SRAM_WEN[i]	<=	'b0;
+									weight_SRAM_WEN_write[i]	<=	1'b0;
 								end
 								else
 								begin
-									weight_SRAM_WEN[i]	<=	'b1;
+									weight_SRAM_WEN_write[i]	<=	1'b1;
 									
 								end
 							end
@@ -662,7 +662,7 @@ module DMA(
 						begin
 							integer	i;
 							for(i=0;i<288;i++)
-								weight_SRAM_WEN[i]	<=	'b1;
+								weight_SRAM_WEN_write[i]	<=	1'b1;
 						end
 					end
 				end
@@ -672,7 +672,7 @@ module DMA(
 				integer	i;
 				for(i=0;i<288;i++)
 				begin
-					weight_SRAM_WEN[i]	<=	'b1;
+					weight_SRAM_WEN_write[i]	<=	1'b1;
 				end
 			end
 		end
@@ -981,7 +981,7 @@ module DMA(
 			integer	i;
 			for(i=0;i<25;i++)
 			begin
-				buffer[i]	<=	32'd0;
+				buffer[i]	<=	8'd0;
 			end
 		end
 		else if(SRAM_type == 1'b0 && DMA_type == 1'b0)
@@ -993,7 +993,7 @@ module DMA(
 					buffer[0]	<=	buffer[1];
 					buffer[1]	<=	buffer[2];
 					buffer[2]	<=	buffer[3];
-					buffer[3]	<=	DRAM_Q;
+					buffer[3]	<=	DRAM_Q[7:0];
 				end
 			end
 		end
@@ -1013,20 +1013,20 @@ module DMA(
 						buffer[5]	<=	buffer[6];
 						buffer[6]	<=	buffer[7];
 						buffer[7]	<=	buffer[8];
-						buffer[8]	<=	DRAM_Q;
+						buffer[8]	<=	DRAM_Q[7:0];
 					end
 				end
 				else if(cur_state == 4'b0000)
 				begin
-					buffer[0]	<=	32'd0;
-					buffer[1]	<=	32'd0;
-					buffer[2]	<=	32'd0;
-					buffer[3]	<=	32'd0;
-					buffer[4]	<=	32'd0;
-					buffer[5]	<=	32'd0;
-					buffer[6]	<=	32'd0;
-					buffer[7]	<=	32'd0;
-					buffer[8]	<=	32'd0;
+					buffer[0]	<=	8'd0;
+					buffer[1]	<=	8'd0;
+					buffer[2]	<=	8'd0;
+					buffer[3]	<=	8'd0;
+					buffer[4]	<=	8'd0;
+					buffer[5]	<=	8'd0;
+					buffer[6]	<=	8'd0;
+					buffer[7]	<=	8'd0;
+					buffer[8]	<=	8'd0;
 				end
 			end
 			else if(kernel_size == 'd5)
@@ -1059,36 +1059,36 @@ module DMA(
 						buffer[21]	<=	buffer[22];
 						buffer[22]	<=	buffer[23];
 						buffer[23]	<=	buffer[24];
-						buffer[24]	<=	DRAM_Q;
+						buffer[24]	<=	DRAM_Q[7:0];
 					end
 				end
 				else if(cur_state == 4'b0000)
 				begin
-					buffer[0]	<=	32'd0;
-					buffer[1]	<=	32'd0;
-					buffer[2]	<=	32'd0;
-					buffer[3]	<=	32'd0;
-					buffer[4]	<=	32'd0;
-					buffer[5]	<=	32'd0;
-					buffer[6]	<=	32'd0;
-					buffer[7]	<=	32'd0;
-					buffer[8]	<=	32'd0;
-					buffer[9]	<=	32'd0;
-					buffer[10]	<=	32'd0;
-					buffer[11]	<=	32'd0;
-					buffer[12]	<=	32'd0;
-					buffer[13]	<=	32'd0;
-					buffer[14]	<=	32'd0;
-					buffer[15]	<=	32'd0;
-					buffer[16]	<=	32'd0;
-					buffer[17]	<=	32'd0;
-					buffer[18]	<=	32'd0;
-					buffer[19]	<=	32'd0;
-					buffer[20]	<=	32'd0;
-					buffer[21]	<=	32'd0;
-					buffer[22]	<=	32'd0;
-					buffer[23]	<=	32'd0;
-					buffer[24]	<=	32'd0;
+					buffer[0]	<=	8'd0;
+					buffer[1]	<=	8'd0;
+					buffer[2]	<=	8'd0;
+					buffer[3]	<=	8'd0;
+					buffer[4]	<=	8'd0;
+					buffer[5]	<=	8'd0;
+					buffer[6]	<=	8'd0;
+					buffer[7]	<=	8'd0;
+					buffer[8]	<=	8'd0;
+					buffer[9]	<=	8'd0;
+					buffer[10]	<=	8'd0;
+					buffer[11]	<=	8'd0;
+					buffer[12]	<=	8'd0;
+					buffer[13]	<=	8'd0;
+					buffer[14]	<=	8'd0;
+					buffer[15]	<=	8'd0;
+					buffer[16]	<=	8'd0;
+					buffer[17]	<=	8'd0;
+					buffer[18]	<=	8'd0;
+					buffer[19]	<=	8'd0;
+					buffer[20]	<=	8'd0;
+					buffer[21]	<=	8'd0;
+					buffer[22]	<=	8'd0;
+					buffer[23]	<=	8'd0;
+					buffer[24]	<=	8'd0;
 				end
 			end
 			else if(kernel_size == 'd7)
@@ -1145,60 +1145,60 @@ module DMA(
 						buffer[45]	<=	buffer[46];
 						buffer[46]	<=	buffer[47];
 						buffer[47]	<=	buffer[48];
-						buffer[48]	<=	DRAM_Q;
+						buffer[48]	<=	DRAM_Q[7:0];
 					end
 				end
 				else if(cur_state == 4'b0000)
 				begin
-					buffer[0]	<=	32'd0;
-					buffer[1]	<=	32'd0;
-					buffer[2]	<=	32'd0;
-					buffer[3]	<=	32'd0;
-					buffer[4]	<=	32'd0;
-					buffer[5]	<=	32'd0;
-					buffer[6]	<=	32'd0;
-					buffer[7]	<=	32'd0;
-					buffer[8]	<=	32'd0;
-					buffer[9]	<=	32'd0;
-					buffer[10]	<=	32'd0;
-					buffer[11]	<=	32'd0;
-					buffer[12]	<=	32'd0;
-					buffer[13]	<=	32'd0;
-					buffer[14]	<=	32'd0;
-					buffer[15]	<=	32'd0;
-					buffer[16]	<=	32'd0;
-					buffer[17]	<=	32'd0;
-					buffer[18]	<=	32'd0;
-					buffer[19]	<=	32'd0;
-					buffer[20]	<=	32'd0;
-					buffer[21]	<=	32'd0;
-					buffer[22]	<=	32'd0;
-					buffer[23]	<=	32'd0;
-					buffer[24]	<=	32'd0;
-					buffer[25]	<=	32'd0;
-					buffer[26]	<=	32'd0;
-					buffer[27]	<=	32'd0;
-					buffer[28]	<=	32'd0;
-					buffer[29]	<=	32'd0;
-					buffer[30]	<=	32'd0;
-					buffer[31]	<=	32'd0;
-					buffer[32]	<=	32'd0;
-					buffer[33]	<=	32'd0;
-					buffer[34]	<=	32'd0;
-					buffer[35]	<=	32'd0;
-					buffer[36]	<=	32'd0;
-					buffer[37]	<=	32'd0;
-					buffer[38]	<=	32'd0;
-					buffer[39]	<=	32'd0;
-					buffer[40]	<=	32'd0;
-					buffer[41]	<=	32'd0;
-					buffer[42]	<=	32'd0;
-					buffer[43]	<=	32'd0;
-					buffer[44]	<=	32'd0;
-					buffer[45]	<=	32'd0;
-					buffer[46]	<=	32'd0;
-					buffer[47]	<=	32'd0;
-					buffer[48]	<=	32'd0;
+					buffer[0]	<=	8'd0;
+					buffer[1]	<=	8'd0;
+					buffer[2]	<=	8'd0;
+					buffer[3]	<=	8'd0;
+					buffer[4]	<=	8'd0;
+					buffer[5]	<=	8'd0;
+					buffer[6]	<=	8'd0;
+					buffer[7]	<=	8'd0;
+					buffer[8]	<=	8'd0;
+					buffer[9]	<=	8'd0;
+					buffer[10]	<=	8'd0;
+					buffer[11]	<=	8'd0;
+					buffer[12]	<=	8'd0;
+					buffer[13]	<=	8'd0;
+					buffer[14]	<=	8'd0;
+					buffer[15]	<=	8'd0;
+					buffer[16]	<=	8'd0;
+					buffer[17]	<=	8'd0;
+					buffer[18]	<=	8'd0;
+					buffer[19]	<=	8'd0;
+					buffer[20]	<=	8'd0;
+					buffer[21]	<=	8'd0;
+					buffer[22]	<=	8'd0;
+					buffer[23]	<=	8'd0;
+					buffer[24]	<=	8'd0;
+					buffer[25]	<=	8'd0;
+					buffer[26]	<=	8'd0;
+					buffer[27]	<=	8'd0;
+					buffer[28]	<=	8'd0;
+					buffer[29]	<=	8'd0;
+					buffer[30]	<=	8'd0;
+					buffer[31]	<=	8'd0;
+					buffer[32]	<=	8'd0;
+					buffer[33]	<=	8'd0;
+					buffer[34]	<=	8'd0;
+					buffer[35]	<=	8'd0;
+					buffer[36]	<=	8'd0;
+					buffer[37]	<=	8'd0;
+					buffer[38]	<=	8'd0;
+					buffer[39]	<=	8'd0;
+					buffer[40]	<=	8'd0;
+					buffer[41]	<=	8'd0;
+					buffer[42]	<=	8'd0;
+					buffer[43]	<=	8'd0;
+					buffer[44]	<=	8'd0;
+					buffer[45]	<=	8'd0;
+					buffer[46]	<=	8'd0;
+					buffer[47]	<=	8'd0;
+					buffer[48]	<=	8'd0;
 				end
 			end
 			else if(kernel_size == 'd1)
@@ -1215,20 +1215,20 @@ module DMA(
 						buffer[5]	<=	buffer[6];
 						buffer[6]	<=	buffer[7];
 						buffer[7]	<=	buffer[8];
-						buffer[8]	<=	DRAM_Q;
+						buffer[8]	<=	DRAM_Q[7:0];
 					end
 				end
 				else if(cur_state == 4'b0000)
 				begin
-					buffer[0]	<=	32'd0;
-					buffer[1]	<=	32'd0;
-					buffer[2]	<=	32'd0;
-					buffer[3]	<=	32'd0;
-					buffer[4]	<=	32'd0;
-					buffer[5]	<=	32'd0;
-					buffer[6]	<=	32'd0;
-					buffer[7]	<=	32'd0;
-					buffer[8]	<=	32'd0;
+					buffer[0]	<=	8'd0;
+					buffer[1]	<=	8'd0;
+					buffer[2]	<=	8'd0;
+					buffer[3]	<=	8'd0;
+					buffer[4]	<=	8'd0;
+					buffer[5]	<=	8'd0;
+					buffer[6]	<=	8'd0;
+					buffer[7]	<=	8'd0;
+					buffer[8]	<=	8'd0;
 				end
 			end
 		end
@@ -1280,7 +1280,7 @@ module DMA(
 	// 	begin
 	// 		if(cur_state == 4'b0010||cur_state == 4'b0011)
 	// 		begin
-	// 			if( input_buffer_A[buf_select] == BUF_ADDR_end)
+	// 			if( input_buffer_A_write[buf_select] == BUF_ADDR_end)
 	// 				read_end	<=	1'b1;
 	// 		end
 	// 		else
@@ -1309,7 +1309,7 @@ module DMA(
 		begin
 			if(cur_state == 4'b0010||cur_state == 4'b0011)
 			begin
-				if( input_buffer_A[buf_select] == BUF_ADDR_end)
+				if( input_buffer_A_write[buf_select] == BUF_ADDR_end)
 					read_end_predict	=	1'b1;
 			end
 			else

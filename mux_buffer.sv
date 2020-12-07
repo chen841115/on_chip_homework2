@@ -5,7 +5,9 @@ module mux_buffer(
     input_buffer_A_write,
 	input_buffer_CEN,
     input_buffer_CEN_read,
-    input_buffer_CEN_write
+    input_buffer_CEN_write,
+    input_buffer_WEN,
+    input_buffer_WEN_write
 );
     input   rw_select   [0:1];
     input	[6:0]	input_buffer_A_read		[0:1];
@@ -14,15 +16,18 @@ module mux_buffer(
 	input	input_buffer_CEN_read	[0:1];
 	input	input_buffer_CEN_write	[0:1];
     output  logic   input_buffer_CEN	[0:1];
+    input	input_buffer_WEN_write	[0:1];
+    output  logic   input_buffer_WEN	[0:1];
 
     always_comb
     begin
         integer i;
         for(i=0;i<2;i++)
         begin
-            input_buffer_A[i] =   (rw_select[i])?input_buffer_A_write[i]:input_buffer_A_read[i];
-			input_buffer_CEN[i]=	(rw_select[i])?input_buffer_CEN_write[i]:input_buffer_CEN_read[i];
-		end
+            input_buffer_A[i]   =   (rw_select[i])?input_buffer_A_write[i]:input_buffer_A_read[i];
+			input_buffer_CEN[i] =	(rw_select[i])?input_buffer_CEN_write[i]:input_buffer_CEN_read[i];
+            input_buffer_WEN[i] =   (rw_select[i])?input_buffer_WEN_write[i]:1'b1;
+        end
     end
 
     // always_comb

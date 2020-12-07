@@ -10,7 +10,7 @@ module input_SRAM (
 );
 
     parameter  Words = 16;
-    parameter  Bits = 128;            
+    parameter  Bits = 32;            
     parameter  AddressSize = 7;
 
     output  [Bits-1:0] Q;

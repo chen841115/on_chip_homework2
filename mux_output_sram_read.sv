@@ -20,9 +20,9 @@ module mux_output_sram_read(
 	input	[11:0]	output_SRAM_AB_controller	[0:31];
     output  logic	[11:0]	output_SRAM_AB		[0:31];	//output_SRAM_DO
 
-	output	logic   [31:0]	output_SRAM_DO_DMA			[0:31];
-	output	logic   [31:0]	output_SRAM_DO_controller	[0:31];
-    input  	[31:0]	output_SRAM_DO		[0:31];
+	output	logic   [15:0]	output_SRAM_DO_DMA			[0:31];
+	output	logic   [15:0]	output_SRAM_DO_controller	[0:31];
+    input  	[15:0]	output_SRAM_DO		[0:31];
 
 	input	output_SRAM_OEN_DMA;
 	input	output_SRAM_OEN_controller;

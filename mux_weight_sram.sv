@@ -5,7 +5,9 @@ module mux_weight_sram(
     weight_SRAM_A_write,
 	weight_SRAM_CEN,
     weight_SRAM_CEN_read,
-    weight_SRAM_CEN_write
+    weight_SRAM_CEN_write,
+    weight_SRAM_WEN,
+    weight_SRAM_WEN_write
 );
     input   weight_SRAM_rw_select;
     input	[6:0]	weight_SRAM_A_read	    [0:287];
@@ -14,6 +16,8 @@ module mux_weight_sram(
 	input	weight_SRAM_CEN_read	[0:287];
 	input	weight_SRAM_CEN_write	[0:287];
     output  logic   weight_SRAM_CEN	[0:287];
+    input	weight_SRAM_WEN_write	[0:287];
+    output  logic   weight_SRAM_WEN	[0:287];
 
     always_comb
     begin
@@ -22,6 +26,7 @@ module mux_weight_sram(
         begin
             weight_SRAM_A[i] =   (weight_SRAM_rw_select)?weight_SRAM_A_write[i]:weight_SRAM_A_read[i];
 			weight_SRAM_CEN[i]=	(weight_SRAM_rw_select)?weight_SRAM_CEN_write[i]:weight_SRAM_CEN_read[i];
+            weight_SRAM_WEN[i]=	(weight_SRAM_rw_select)?weight_SRAM_WEN_write[i]:1'b1;
 		end
     end
 
